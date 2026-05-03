@@ -83,7 +83,7 @@ def main(cfg):
     wandb.init(
         project=cfg.project,
         # This has to be your WandB user-institution
-        entity="bibarelusedfly-cenia", 
+        entity=None, 
         name=exp_name,
         config=wandb_config,
         settings=wandb.Settings(_disable_stats=True,),

@@ -1,0 +1,42 @@
+/tmp/slurmd/job05728/slurm_script: line 21: ./miniconda3/etc/profile.d/conda.sh: No such file or directory
+
+CondaError: Run 'conda init' before 'conda activate'
+
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/matias_rodriguez/.netrc.
+wandb: Currently logged in as: matias-rodriguez (cenia) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:279: DeprecationWarning: The `Scope.user` setter is deprecated in favor of `Scope.set_user()`.
+  self.scope.user = {"email": email}
+wandb: setting up run nj9waytq
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:279: DeprecationWarning: The `Scope.user` setter is deprecated in favor of `Scope.set_user()`.
+  self.scope.user = {"email": email}
+wandb: Tracking run with wandb version 0.24.2
+wandb: Run data is saved locally in /mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/maskdp_models/output/2026.05.02/163647_mdp/wandb/run-20260502_163649-nj9waytq
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run mdp_walker_1
+wandb: ⭐️ View project at https://wandb.ai/cenia/final_mt_mdp
+wandb: 🚀 View run at https://wandb.ai/cenia/final_mt_mdp/runs/nj9waytq
+Error executing job with overrides: ['agent=mdp', 'agent.batch_size=384', 'agent.transformer_cfg.traj_length=64', 'agent.transformer_cfg.loss=total', 'agent.transformer_cfg.n_embd=256', 'agent.transformer_cfg.n_head=4', 'agent.transformer_cfg.n_enc_layer=3', 'agent.transformer_cfg.n_dec_layer=2', 'agent.transformer_cfg.norm=l2', 'num_grad_steps=400010', 'task=walker_run', 'snapshot_dir=snapshot', 'resume=false', 'project=final_mt_mdp', 'use_wandb=True', 'seed=1']
+Traceback (most recent call last):
+  File "pretrain.py", line 123, in main
+    metrics = agent.update(train_iter, global_step)
+  File "/mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/agent/mdp.py", line 265, in update
+    metrics.update(self.update_mdp(obs, action))
+  File "/mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/agent/mdp.py", line 215, in update_mdp
+    pred_s, pred_a = self.model.forward_decoder(
+  File "/mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/agent/mdp.py", line 131, in forward_decoder
+    x = torch.gather(
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 48.00 MiB. GPU 0 has a total capacity of 44.43 GiB of which 47.50 MiB is free. Process 3282807 has 41.06 GiB memory in use. Including non-PyTorch memory, this process has 3.31 GiB memory in use. Of the allocated memory 2.53 GiB is allocated by PyTorch, and 472.74 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

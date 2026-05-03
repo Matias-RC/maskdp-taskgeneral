@@ -1,0 +1,29 @@
+/tmp/slurmd/job05741/slurm_script: line 21: ./miniconda3/etc/profile.d/conda.sh: No such file or directory
+
+CondaError: Run 'conda init' before 'conda activate'
+
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/matias_rodriguez/.netrc.
+wandb: Currently logged in as: matias-rodriguez (cenia) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:279: DeprecationWarning: The `Scope.user` setter is deprecated in favor of `Scope.set_user()`.
+  self.scope.user = {"email": email}
+wandb: setting up run 7q1xs0da
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:268: DeprecationWarning: Read the `app_url` setting from the appropriate Settings object.
+  app_url = wandb.util.app_url(tags["base_url"])  # type: ignore[index]
+/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/wandb/analytics/sentry.py:279: DeprecationWarning: The `Scope.user` setter is deprecated in favor of `Scope.set_user()`.
+  self.scope.user = {"email": email}
+wandb: Tracking run with wandb version 0.24.2
+wandb: Run data is saved locally in /mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/maskdp_models/output/2026.05.02/175624_mdp/wandb/run-20260502_175625-7q1xs0da
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run mdp_walker_1
+wandb: ⭐️ View project at https://wandb.ai/cenia/final_mt_mdp
+wandb: 🚀 View run at https://wandb.ai/cenia/final_mt_mdp/runs/7q1xs0da

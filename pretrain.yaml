@@ -22,7 +22,7 @@ resume_step: 0
 # Dummy data
 # replay_buffer_dir: /home/bibarel/workspace/maskdp-taskgeneral/maskdp_data/maskdp_train
 # MaskDP data
-replay_buffer_dir: /home/bibarel/workspace/maskdp_data/maskdp_train
+replay_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train
 # ExORL data
 # replay_buffer_dir: /home/bibarel/workspace/exorl/datasets
 replay_buffer_size: 100000000
@@ -41,4 +41,4 @@ exp_name: output
 # This is the working directory for the script
 hydra:
   run:
-    dir: "/home/bibarel/workspace/maskdp_models/${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}_${agent.name}"
+    dir: "/home/matias_rodriguez/maskdp-taskgeneral/maskdp_models/${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}_${agent.name}"

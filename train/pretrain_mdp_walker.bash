@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=maskdp_pretrain_quadruped_run       # Job name
+#SBATCH --job-name=maskdp_pretrain_walker_run       # Job name
 #SBATCH --mail-type=BEGIN,END,FAIL       # Mail (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=fivillagran@uc.cl    # El mail del usuario
+#SBATCH --mail-user=matias.rodriguez@cenia.cl    # El mail del usuario
 #SBATCH --output=logs/%x-%j.out          # Log file (%x=job-name, %j=job-ID)
 #SBATCH --error=logs/%x-%j.err           # Error log                    
 #SBATCH --gres=gpu:1                     # Number of GPUs
 #SBATCH --cpus-per-task=16               # CPU cores
-#SBATCH --nodelist=peteroa
-#SBATCH --partition=debug
+#SBATCH --nodelist=llaima
+#SBATCH --partition=ialab
 #SBATCH --account=defaultacc             
 #SBATCH --qos=normal 
 #SBATCH --time=24:00:00
@@ -15,18 +15,19 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 
-#SBATCH --chdir=/home/bibarel/workspace
+#SBATCH --chdir=/home/matias_rodriguez/maskdp-taskgeneral
 
 # --- Environment setup ---
 source "./miniconda3/etc/profile.d/conda.sh"
 conda activate maskdp
-cd "./maskdp-taskgeneral"
 pwd
 echo "Pretraining MaskDP on walker_run task..."
 
+export CUDA_VISIBLE_DEVICES=4
+
 python pretrain.py \
     agent=mdp \
-    agent.batch_size=384 \
+    agent.batch_size=256 \
     agent.transformer_cfg.traj_length=64 \
     agent.transformer_cfg.loss="total" \
     agent.transformer_cfg.n_embd=256 \

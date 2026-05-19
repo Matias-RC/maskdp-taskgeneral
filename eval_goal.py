@@ -5,7 +5,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import os
 
 os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
-os.environ["MUJOCO_GL"] = "disable"
+os.environ["MUJOCO_GL"] = "egl"
 
 from pathlib import Path
 
@@ -18,7 +18,7 @@ import dmc
 import utils
 from logger import Logger
 from replay_buffer import make_replay_loader
-# from video import VideoRecorder
+from video import VideoRecorder
 import wandb
 import omegaconf
 
@@ -38,8 +38,14 @@ def get_data_seed(seed, num_data_seeds):
 
 def get_dir(cfg):
     '''Get path to model weights'''
-    snapshot_base_dir = Path(cfg.snapshot_base_dir)
+
+    # Resolves back to /home/matias_rodriguez/maskdp-taskgeneral
+    original_working_dir = Path(hydra.utils.get_original_cwd())
+    
+    # Anchors the snapshot directory to your true workspace root
+    snapshot_base_dir = original_working_dir / cfg.snapshot_base_dir
     snapshot_dir = snapshot_base_dir / get_domain(cfg.task)
+
     snapshot = snapshot_dir / str(1) / f"snapshot_{cfg.snapshot_ts}.pt"
     return snapshot
 
@@ -134,8 +140,9 @@ def eval_bc(
             video_recorder.record(env)
             step += 1
 
-        video_recorder.save(f"{global_step}.mp4")
         video_recorder.render_goal(env, goal_physics[episode])
+        video_recorder.save(f"{global_step}.mp4")
+        
         episode += 1
         total_dist2goal.append(dist2goal)
 
@@ -155,6 +162,7 @@ def eval_mdp(
     device,
     num_eval_episodes,
     video_recorder,
+    cfg,
     replan=False,
 ):
     step, episode, total_dist2goal = 0, 0, []
@@ -169,7 +177,10 @@ def eval_mdp(
         with env.physics.reset_context():
             env.physics.set_state(start_physics[episode].cpu())
         dist2goal = 1e6
-        video_recorder.init(env, enabled=True)
+        
+        is_last_episode = (episode == num_eval_episodes - 1)
+        video_recorder.init(env, enabled=is_last_episode)
+        
         if replan is False:
             with torch.no_grad(), utils.eval_mode(agent):
                 actions = agent.act(
@@ -180,17 +191,14 @@ def eval_mdp(
 
             for a in actions:
                 time_step = env.step(a)
-                video_recorder.record(env)
+                if is_last_episode:
+                    video_recorder.record(env)
                 step += 1
                 dist = np.linalg.norm(
                     time_step.observation - goal_obs[episode].cpu().numpy()
                 )
                 dist2goal = min(dist2goal, dist)
 
-            video_recorder.save(f"{global_step}.mp4")
-            video_recorder.render_goal(env, goal_physics[episode])
-            episode += 1
-            total_dist2goal.append(dist2goal)
         else:
             obs = start_obs[episode]
             for t in range(timestep[episode]):
@@ -207,19 +215,25 @@ def eval_mdp(
                     time_step.observation - goal_obs[episode].cpu().numpy()
                 )
                 dist2goal = min(dist2goal, dist)
-                video_recorder.record(env)
+                
+                if is_last_episode:
+                    video_recorder.record(env)
                 step += 1
 
-            video_recorder.save(f"{global_step}.mp4")
+        if is_last_episode:
             video_recorder.render_goal(env, goal_physics[episode])
-            episode += 1
-            total_dist2goal.append(dist2goal)
+            video_name = f"{cfg.task}_step_{global_step}.mp4" 
+            video_recorder.save(video_name)
+
+        episode += 1
+        total_dist2goal.append(dist2goal)
 
     with logger.log_and_dump_ctx(global_step, ty="eval") as log:
         log("distance2goal", np.mean(total_dist2goal))
         log("std", np.std(total_dist2goal))
         log("episode_length", step / episode)
         log("step", global_step)
+
 
 # This links it to eval.yaml
 @hydra.main(config_path=".", config_name="eval")
@@ -252,7 +266,7 @@ def main(cfg):
     )
     wandb.init(
         project=cfg.project,
-        entity="bibarelusedfly-cenia",
+        entity=None,
         name=exp_name,
         config=wandb_config,
         settings=wandb.Settings(
@@ -275,9 +289,11 @@ def main(cfg):
     # create data storage
     domain = get_domain(cfg.task)
 
+
     goal_dir = Path(cfg.goal_buffer_dir) / cfg.task
 
     print(f"goal buffer dir: {goal_dir}")
+
 
     goal_loader = make_replay_loader(
         env,
@@ -295,7 +311,7 @@ def main(cfg):
     goal_iter = iter(goal_loader)
 
     # create video recorders
-    # video_recorder = VideoRecorder(work_dir if cfg.save_video else None)
+    video_recorder = VideoRecorder(work_dir if cfg.save_video else None)
 
     timer = utils.Timer()
 
@@ -314,6 +330,7 @@ def main(cfg):
                 device,
                 cfg.num_eval_episodes,
                 video_recorder,
+                cfg,
                 replan=cfg.replan,
             )
         elif cfg.agent.name == "bc_goal":

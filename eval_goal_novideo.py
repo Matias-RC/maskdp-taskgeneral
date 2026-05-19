@@ -38,9 +38,14 @@ def get_data_seed(seed, num_data_seeds):
 
 def get_dir(cfg):
     '''Get path to model weights'''
-    snapshot_base_dir = Path(cfg.snapshot_base_dir)
+
+    # Resolves back to /home/matias_rodriguez/maskdp-taskgeneral
+    original_working_dir = Path(hydra.utils.get_original_cwd())
+    
+    # Anchors the snapshot directory to your true workspace root
+    snapshot_base_dir = original_working_dir / cfg.snapshot_base_dir
     snapshot_dir = snapshot_base_dir / get_domain(cfg.task)
-    ## Change this if model used seed != 1
+
     snapshot = snapshot_dir / str(1) / f"snapshot_{cfg.snapshot_ts}.pt"
     return snapshot
 
@@ -147,7 +152,7 @@ def main(cfg):
     )
     wandb.init(
         project=cfg.project,
-        entity="bibarelusedfly-cenia",
+        entity=None,
         name=exp_name,
         config=wandb_config,
         settings=wandb.Settings(
@@ -169,6 +174,7 @@ def main(cfg):
 
     # create data storage
     domain = get_domain(cfg.task)
+
 
     goal_dir = Path(cfg.goal_buffer_dir) / cfg.task
 

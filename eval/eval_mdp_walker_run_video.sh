@@ -27,7 +27,7 @@ pwd
 echo "Evaluating walker_walk on goal_reaching..."
 
 
-python eval_goal_novideo.py \
+python eval_goal.py \
     agent=mdp_goal \
     agent.batch_size=384 \
     seed=3 \
@@ -37,6 +37,6 @@ python eval_goal_novideo.py \
     goal_buffer_dir=/home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train/walker/expert \
     snapshot_ts=0 \
     project=eval-single-goal \
-    replan=true \
+    replan=false \
     use_wandb=True \
     +exp_name=eval_walker_walk

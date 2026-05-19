@@ -1,7 +1,0 @@
-/home/matias_rodriguez/maskdp-taskgeneral
-Pretraining MaskDP on walker_run task...
-Workspace: /mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/maskdp_models/output/2026.05.02/175624_mdp
-Using device: cuda
-norm l2
-number of parameters: %e 4098078
-Using dataset: /home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train/walker

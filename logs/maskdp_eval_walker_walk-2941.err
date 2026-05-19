@@ -1,0 +1,38 @@
+Error executing job with overrides: ['agent=mdp_goal', 'agent.batch_size=384', 'seed=3', 'num_eval_episodes=300', 'task=walker_walk', 'snapshot_base_dir=snapshot', 'goal_buffer_dir=/home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train/walker/expert', 'snapshot_ts=400000', 'project=eval-single-goal', 'replan=true', 'use_wandb=True', '+exp_name=eval_walker_walk']
+Traceback (most recent call last):
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 62, in _call_target
+    return target(*args, **kwargs)
+  File "/mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/agent/mdp_goal.py", line 38, in __init__
+    payload = torch.load(path)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 998, in load
+    with _open_file_like(f, 'rb') as opened_file:
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 445, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 426, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: 'snapshot/walker/1/snapshot_400000.pt'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "eval_goal.py", line 244, in main
+    agent = hydra.utils.instantiate(
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 180, in instantiate
+    return instantiate_node(config, *args, recursive=_recursive_, convert=_convert_)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 249, in instantiate_node
+    return _call_target(target, *args, **kwargs)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 64, in _call_target
+    raise type(e)(
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 62, in _call_target
+    return target(*args, **kwargs)
+  File "/mnt-homes/dccnas/CristianBuc/matias_rodriguez/maskdp-taskgeneral/agent/mdp_goal.py", line 38, in __init__
+    payload = torch.load(path)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 998, in load
+    with _open_file_like(f, 'rb') as opened_file:
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 445, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/home/matias_rodriguez/miniconda3/envs/maskdp/lib/python3.8/site-packages/torch/serialization.py", line 426, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: Error instantiating 'agent.mdp_goal.MDPGoalAgent' : [Errno 2] No such file or directory: 'snapshot/walker/1/snapshot_400000.pt'
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

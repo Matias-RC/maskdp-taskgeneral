@@ -18,7 +18,7 @@ snapshot_base_dir: snapshots
 batch_size: ${agent.batch_size}
 
 # goal loader dataset
-goal_buffer_dir: /home/bibarel/workspace/maskdp_data/maskdp_eval
+goal_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train
 goal_buffer_size: 100000000
 goal_buffer_num_workers: 4
 
@@ -28,11 +28,11 @@ device: cuda
 save_video: true
 use_tb: false # Nope
 use_wandb: true
-project: mdp-fangchen-finetune
+project: mdp-eval
 notes: "finetune"
-replan: true
+replan: false
 
 
 hydra:
   run:
-    dir: "/home/bibarel/workspace/maskdp_models/${now:%Y.%m.%d}/${now:%H%M%S}_${agent.name}"
+    dir: "/home/matias_rodriguez/maskdp-taskgeneral/maskdp_models/${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}_${agent.name}"

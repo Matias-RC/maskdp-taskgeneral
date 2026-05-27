@@ -171,6 +171,7 @@ def eval_mdp(
     start_obs, start_physics, goal_obs, goal_physics, timestep = utils.to_torch(
         batch, device
     )
+    timestep = torch.clamp(timestep, max=250)
 
     while eval_until_episode(episode):
         time_step = env.reset()

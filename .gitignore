@@ -12,3 +12,6 @@ datasets/
 models/
 snapshots/
 maskdp_models/
+maskdp_data/
+logs/
+snapshot/

@@ -76,6 +76,7 @@ class OfflineReplayBuffer(IterableDataset):
         self._cfg = cfg
         self._relabel = relabel
         self._obs = obs
+        #print(replay_dir)
         # print('seed', np.random.get_state()[1][0])
         # random.seed(np.random.get_state()[1][0])
 
@@ -130,8 +131,8 @@ class OfflineReplayBuffer(IterableDataset):
     def _sample_goal(self):
         episode = self._sample_episode()
         # add +1 for the first dummy transition
-        start_idx = np.random.randint(0, 900)
-        length = np.random.randint(15, 20)
+        start_idx = np.random.randint(0, 200)
+        length = np.random.randint(15, 50)
         start_obs = episode["observation"][start_idx]
         start_physics = episode["physics"][start_idx]
         goal_obs = episode["observation"][start_idx + length - 1]

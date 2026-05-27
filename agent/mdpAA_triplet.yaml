@@ -1,15 +1,15 @@
 # @package agent
-_target_: agent.mdp.JointDPAgent
-name: mdp
-obs_shape: ??? # to be specified later
-action_shape: ??? # to be specified later
+_target_: agent.mdpAA_pretrain_triplet.MaskedDPAgent # Ensure this matches the class name inside your file
+name: mdpAA_triplet
+obs_shape: ??? 
+action_shape: ??? 
 device: ${device}
 lr: 1e-4
 use_tb: ${use_tb}
-batch_size: 1024 # 256 for pixels
+batch_size: 1024 
 mask_ratio: [0.15, 0.35, 0.55, 0.75, 0.95]
 transformer_cfg:
-  n_embd: 128 # n_embd % n_head must be 0
+  n_embd: 128 
   n_head: 2
   n_enc_layer: 1
   n_dec_layer: 1

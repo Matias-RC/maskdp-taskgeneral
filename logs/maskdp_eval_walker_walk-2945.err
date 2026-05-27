@@ -1,4 +1,0 @@
-  File "eval_goal.py", line 333
-    replan=cfg.replan,
-    ^
-SyntaxError: invalid syntax

@@ -3,14 +3,14 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # task settings
-task: walker_walk
+task: jaco
 discount: 0.99
 # train settings (Not relevant for eval)
 num_grad_steps: 500000
 log_every_steps: 1000
 # eval
 eval_every_steps: 10000
-num_eval_episodes: 100
+num_eval_episodes: 250
 # snapshot
 snapshot_ts: 100000
 snapshot_base_dir: snapshots

@@ -1,0 +1,48 @@
+defaults:
+  - agent: mdp # Assuming you still want to load base transformer configs
+  - override hydra/launcher: submitit_local
+
+# Environment Settings
+task: jaco_reach_top_left
+discount: 0.99
+
+# Pretrained Model Path
+pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/jaco/1/snapshot_0.pt
+
+# RL / A2C Fine-tuning Hyperparameters
+gamma: 0.99
+lam: 0.95
+value_coef: 0.5
+entropy_coef: 0.01
+max_grad_norm: 0.5
+lr: 1e-4
+
+# Training Loop Settings
+iterations: 1000        # Number of environment rollout + update cycles
+epochs: 4               # Number of optimization passes over the collected rollout data
+batch_size: 64          # Batch size for fine-tuning updates
+
+# Replay Buffer Settings
+buffer_size: 30          # Number of full episodes to store before updating
+timeout_limit: 1000     # Standard max steps for DeepMind Control suite tasks
+#snapshot config:
+agent:
+  PE_type: ???
+# Logging and Snapshots
+use_tb: false
+use_wandb: true
+project: mdp-finetune
+notes: "ppo-finetuning"
+exp_name: output
+snapshot_dir: snapshot
+save_every: 100          # Save a snapshot every X iterations
+
+#misc
+seed: 1
+device: cuda
+
+
+# Working directory setup for Hydra
+hydra:
+  run:
+    dir: "/home/matias_rodriguez/maskdp-taskgeneral/maskdp_models/finetune_${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}"

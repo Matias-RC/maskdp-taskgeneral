@@ -25,12 +25,16 @@ def save_episode(episode, fn):
             f.write(bs.read())
 
 
-def load_episode(fn, domain, obs):
-    with fn.open("rb") as f:
-        episode = np.load(f)
-        episode = {k: episode[k] for k in episode.keys()}
-        return episode
-
+def load_episode(fn, domain, obs, is_local_data=True, fs=None):
+    if is_local_data:
+        with fn.open("rb") as f:
+            episode = np.load(f)
+    else:
+        with fs.open(fn, "rb") as f:
+            episode = np.load(f)
+            
+    episode = {k: episode[k] for k in episode.keys()}
+    return episode
 
 def relable_episode(env, episode):
     rewards = []
@@ -60,6 +64,8 @@ class OfflineReplayBuffer(IterableDataset):
         cfg,
         relabel,
         obs,
+        is_local_data=True,
+        hf_path=None,
     ):
         self._env = env
         self._replay_dir = replay_dir
@@ -76,6 +82,14 @@ class OfflineReplayBuffer(IterableDataset):
         self._cfg = cfg
         self._relabel = relabel
         self._obs = obs
+        self._is_local_data = is_local_data
+        self._hf_path = hf_path
+        
+        if not self._is_local_data:
+            from huggingface_hub import HfFileSystem
+            self._fs = HfFileSystem()
+        else:
+            self._fs = None
         #print(replay_dir)
         # print('seed', np.random.get_state()[1][0])
         # random.seed(np.random.get_state()[1][0])
@@ -89,17 +103,34 @@ class OfflineReplayBuffer(IterableDataset):
             worker_id = torch.utils.data.get_worker_info().id
         except:
             worker_id = 0
-        eps_fns = sorted(
-            self._replay_dir.rglob("*.npz")
-        )  # get all episodes recursively
+        if self._is_local_data:
+            eps_fns = sorted(
+                self._replay_dir.rglob("*.npz")
+            )  # get all episodes recursively
+        else:
+            hf_path = f"datasets/{self._hf_path}/*.npz"
+            eps_fns = sorted(self._fs.glob(hf_path))
+
         for eps_fn in eps_fns:
             if self._size > self._max_size:
                 print("over size", self._max_size)
                 break
-            eps_idx, eps_len = [int(x) for x in eps_fn.stem.split("_")[1:]]
+            if self._is_local_data:
+                eps_idx, eps_len = [int(x) for x in eps_fn.stem.split("_")[1:]]
+            else:
+                filename = eps_fn.split("/")[-1]
+                eps_idx, eps_len = [int(x) for x in filename.split(".npz")[0].split("_")[1:]]
+
             if eps_idx % self._num_workers != worker_id:
                 continue
-            episode = load_episode(eps_fn, self._domain, self._obs)
+
+            episode = load_episode(
+                eps_fn, 
+                self._domain, 
+                self._obs, 
+                is_local_data=self._is_local_data, 
+                fs=self._fs
+            )
             if relable:
                 episode = self._relable_reward(episode)
             self._episode_fns.append(eps_fn)
@@ -208,6 +239,8 @@ def make_replay_loader(
     multi_task=False,
     relabel=True,
     obs="states",
+    is_local_data=True,
+    hf_path=None,
 ):
     max_size_per_worker = max_size // max(1, num_workers)
 
@@ -223,6 +256,8 @@ def make_replay_loader(
         cfg,
         relabel,
         obs,
+        is_local_data,
+        hf_path
     )
 
     loader = torch.utils.data.DataLoader(

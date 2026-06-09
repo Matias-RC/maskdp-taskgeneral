@@ -3,11 +3,11 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Environment Settings
-task: jaco_reach_top_left
+task: walker_walk
 discount: 0.99
 
 # Pretrained Model Path
-pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/jaco/1/snapshot_0.pt
+pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_0.pt
 
 # RL / A2C Fine-tuning Hyperparameters
 gamma: 0.99
@@ -15,15 +15,15 @@ lam: 0.95
 value_coef: 0.5
 entropy_coef: 0.01
 max_grad_norm: 0.5
-lr: 1e-4
+lr: 5e-5
 
 # Training Loop Settings
 iterations: 1000        # Number of environment rollout + update cycles
-epochs: 4               # Number of optimization passes over the collected rollout data
+epochs: 2               # Number of optimization passes over the collected rollout data
 batch_size: 64          # Batch size for fine-tuning updates
 
 # Replay Buffer Settings
-buffer_size: 30          # Number of full episodes to store before updating
+buffer_size: 100          # Number of full episodes to store before updating
 timeout_limit: 1000     # Standard max steps for DeepMind Control suite tasks
 #snapshot config:
 agent:
@@ -31,7 +31,7 @@ agent:
 # Logging and Snapshots
 use_tb: false
 use_wandb: true
-project: mdp-finetune
+project: finetune_biped_to_walk
 notes: "ppo-finetuning"
 exp_name: output
 snapshot_dir: snapshot

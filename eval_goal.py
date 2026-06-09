@@ -236,7 +236,49 @@ def eval_mdp(
         log("step", global_step)
 
 
-# This links it to eval.yaml
+def eval_dataset(
+    global_step,
+    agent,
+    env,
+    logger,
+    dataset_iter,
+    device,
+    num_eval_episodes,
+    video_recorder,
+    cfg,
+):
+    step, episode = 0, 0
+    eval_until_episode = utils.Until(num_eval_episodes)
+    
+    batch = next(dataset_iter)
+    _, expert_actions, physics_seq, _, _ = utils.to_torch(batch, device)
+
+    while eval_until_episode(episode):
+        time_step = env.reset()
+        
+        with env.physics.reset_context():
+            env.physics.set_state(physics_seq[episode, 0].cpu())
+        
+        is_last_episode = (episode == num_eval_episodes - 1)
+        video_recorder.init(env, enabled=is_last_episode)
+        
+        for action in expert_actions[episode]:
+            time_step = env.step(action.cpu().numpy())
+            if is_last_episode:
+                video_recorder.record(env)
+            step += 1
+
+        if is_last_episode:
+            video_name = f"dataset_replay_{cfg.task}_step_{global_step}.mp4" 
+            video_recorder.save(video_name)
+
+        episode += 1
+
+    with logger.log_and_dump_ctx(global_step, ty="eval_dataset") as log:
+        log("episode_length", step / episode)
+        log("step", global_step)
+
+
 @hydra.main(config_path=".", config_name="eval")
 def main(cfg):
     work_dir = Path.cwd()
@@ -279,23 +321,56 @@ def main(cfg):
     )
     logger = Logger(work_dir, use_tb=cfg.use_tb, use_wandb=cfg.use_wandb)
 
-    # create replay buffer
-    data_specs = (
-        env.observation_spec(),
-        env.action_spec(),
-        env.reward_spec(),
-        env.discount_spec(),
-    )
-
     # create data storage
     domain = get_domain(cfg.task)
-
-
     goal_dir = Path(cfg.goal_buffer_dir) / cfg.task
-
     print(f"goal buffer dir: {goal_dir}")
 
+    # Initialize video recorders and baseline steps early to prevent scope runtime issues
+    video_recorder = VideoRecorder(work_dir if cfg.save_video else None)
+    global_step = 0
+    timer = utils.Timer()
 
+    # --- Dataset Inspection Route ---
+    if getattr(cfg, "inspect_data_only", False):
+        import copy
+        from omegaconf import OmegaConf
+        
+        # 1. Deepcopy agent config and unlock it to allow custom fields
+        buffer_cfg = copy.deepcopy(agent.config)
+        OmegaConf.set_struct(buffer_cfg, False)
+        
+        # 2. Define lengths for the dataset tracking
+        buffer_cfg.context_length = 250   # How many sequential action steps you want to evaluate
+        buffer_cfg.forecast_length = 1    # Dummy length to prevent slice math errors in the legacy code
+        
+        dataset_loader = make_replay_loader(
+            env,
+            goal_dir,
+            cfg.goal_buffer_size,
+            cfg.num_eval_episodes, 
+            cfg.goal_buffer_num_workers,
+            cfg.discount,
+            domain=domain,
+            mode="prompt",  
+            cfg=buffer_cfg,  # Pass the patched configuration here
+            relabel=False,
+        )
+        dataset_iter = iter(dataset_loader)
+        eval_dataset(
+            global_step=global_step,
+            agent=agent,
+            env=env,
+            logger=logger,
+            dataset_iter=dataset_iter,
+            device=device,
+            num_eval_episodes=cfg.num_eval_episodes,
+            video_recorder=video_recorder,
+            cfg=cfg
+        )
+        return
+
+    # --- Standard Model Evaluation Route ---
     goal_loader = make_replay_loader(
         env,
         goal_dir,
@@ -311,12 +386,6 @@ def main(cfg):
     )
     goal_iter = iter(goal_loader)
 
-    # create video recorders
-    video_recorder = VideoRecorder(work_dir if cfg.save_video else None)
-
-    timer = utils.Timer()
-
-    global_step = 0
     eval_every_step = utils.Every(cfg.eval_every_steps)
 
     if eval_every_step(global_step):

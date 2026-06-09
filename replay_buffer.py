@@ -3,13 +3,20 @@ import io
 import random
 import traceback
 import copy
+import tempfile
+import atexit
+import shutil
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import IterableDataset
 from utils import get_norm
+
+# Hugging Face programmatic tools
+from huggingface_hub import list_repo_files, hf_hub_download
 
 
 def episode_len(episode):
@@ -25,16 +32,12 @@ def save_episode(episode, fn):
             f.write(bs.read())
 
 
-def load_episode(fn, domain, obs, is_local_data=True, fs=None):
-    if is_local_data:
-        with fn.open("rb") as f:
-            episode = np.load(f)
-    else:
-        with fs.open(fn, "rb") as f:
-            episode = np.load(f)
-            
-    episode = {k: episode[k] for k in episode.keys()}
-    return episode
+def load_episode(fn, domain, obs):
+    with fn.open("rb") as f:
+        episode = np.load(f)
+        episode = {k: episode[k] for k in episode.keys()}
+        return episode
+
 
 def relable_episode(env, episode):
     rewards = []
@@ -64,11 +67,9 @@ class OfflineReplayBuffer(IterableDataset):
         cfg,
         relabel,
         obs,
-        is_local_data=True,
-        hf_path=None,
     ):
         self._env = env
-        self._replay_dir = replay_dir
+        self._replay_dir = Path(replay_dir)
         self._domain = domain
         self._mode = mode
         self._size = 0
@@ -82,17 +83,6 @@ class OfflineReplayBuffer(IterableDataset):
         self._cfg = cfg
         self._relabel = relabel
         self._obs = obs
-        self._is_local_data = is_local_data
-        self._hf_path = hf_path
-        
-        if not self._is_local_data:
-            from huggingface_hub import HfFileSystem
-            self._fs = HfFileSystem()
-        else:
-            self._fs = None
-        #print(replay_dir)
-        # print('seed', np.random.get_state()[1][0])
-        # random.seed(np.random.get_state()[1][0])
 
     def _load(self, relable=True):
         if relable:
@@ -103,34 +93,25 @@ class OfflineReplayBuffer(IterableDataset):
             worker_id = torch.utils.data.get_worker_info().id
         except:
             worker_id = 0
-        if self._is_local_data:
-            eps_fns = sorted(
-                self._replay_dir.rglob("*.npz")
-            )  # get all episodes recursively
-        else:
-            hf_path = f"datasets/{self._hf_path}/*.npz"
-            eps_fns = sorted(self._fs.glob(hf_path))
-
+            
+        eps_fns = sorted(
+            self._replay_dir.rglob("*.npz")
+        )  # get all episodes recursively
+        
         for eps_fn in eps_fns:
             if self._size > self._max_size:
                 print("over size", self._max_size)
                 break
-            if self._is_local_data:
-                eps_idx, eps_len = [int(x) for x in eps_fn.stem.split("_")[1:]]
-            else:
-                filename = eps_fn.split("/")[-1]
-                eps_idx, eps_len = [int(x) for x in filename.split(".npz")[0].split("_")[1:]]
-
+                
+            try:
+                eps_idx = int(eps_fn.stem.split("_")[1])
+            except (IndexError, ValueError):
+                continue
+                
             if eps_idx % self._num_workers != worker_id:
                 continue
-
-            episode = load_episode(
-                eps_fn, 
-                self._domain, 
-                self._obs, 
-                is_local_data=self._is_local_data, 
-                fs=self._fs
-            )
+                
+            episode = load_episode(eps_fn, self._domain, self._obs)
             if relable:
                 episode = self._relable_reward(episode)
             self._episode_fns.append(eps_fn)
@@ -149,7 +130,6 @@ class OfflineReplayBuffer(IterableDataset):
 
     def _sample(self):
         episode = self._sample_episode()
-        # add +1 for the first dummy transition
         idx = np.random.randint(0, episode_len(episode) - self._traj_length + 1) + 1
         obs = episode["observation"][idx - 1 : idx - 1 + self._traj_length]
         action = episode["action"][idx : idx + self._traj_length]
@@ -161,42 +141,33 @@ class OfflineReplayBuffer(IterableDataset):
 
     def _sample_goal(self):
         episode = self._sample_episode()
-        # add +1 for the first dummy transition
-        start_idx = np.random.randint(0, 200)
-        length = np.random.randint(15, 50)
+        start_idx = np.random.randint(0, 900)
+        length = np.random.randint(15, 20)
         start_obs = episode["observation"][start_idx]
         start_physics = episode["physics"][start_idx]
         goal_obs = episode["observation"][start_idx + length - 1]
         goal_physics = episode["physics"][start_idx + length - 1]
         timestep = length - 1
-        # print(action.shape)
         return (start_obs, start_physics, goal_obs, goal_physics, timestep)
 
     def _sample_multiple_goal(self):
         episode = self._sample_episode()
-        # add +1 for the first dummy transition
         start_idx = np.random.randint(0, 850)
         time_budget = np.array([12, 24, 36, 48, 60])
-
         start_obs = episode["observation"][start_idx]
         start_physics = episode["physics"][start_idx]
-
         goal = episode["observation"][start_idx + time_budget]
         goal_physics = episode["physics"][start_idx + time_budget]
-
-        # print(action.shape)
         return (start_obs, start_physics, goal, goal_physics, time_budget)
 
     def _sample_context(self):
         episode = self._sample_episode()
         context_length = self._cfg.context_length
         forecast_length = self._cfg.forecast_length
-        # add +1 for the first dummy transition
-        # idx = np.random.randint(0, 50 - context_length+ 1) + 1
         start_idx = np.random.randint(100, 850)
         obs = episode["observation"][
             start_idx - 1 : start_idx + context_length
-        ]  # last state is the initial obs
+        ]  
         action = episode["action"][start_idx : start_idx + context_length]
         reward = episode["reward"][
             start_idx + context_length : start_idx + context_length + forecast_length
@@ -241,7 +212,73 @@ def make_replay_loader(
     obs="states",
     is_local_data=True,
     hf_path=None,
+    download_fraction=0.1,
 ):
+    # --- Hugging Face Safe Local Download Logic ---
+    if not is_local_data and hf_path is not None:
+        # Create a true temporary directory that completely bypasses persistent cache
+        temp_dir = tempfile.mkdtemp(prefix="hf_replay_cache_")
+        
+        # Safe cleanup hook: Erases files on job completion, timeout, or cancellation
+        atexit.register(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
+        print(f"[Master] Created temporary directory for dataset: {temp_dir}. Will auto-delete on exit.", flush=True)
+        
+        # Parse hf_path into repo_id and sub_folder
+        parts = hf_path.split("/")
+        if len(parts) > 2:
+            repo_id = f"{parts[0]}/{parts[1]}"
+            sub_folder = "/".join(parts[2:])
+        else:
+            repo_id = hf_path
+            sub_folder = None
+
+        print(f"[Master] Target Repo ID: '{repo_id}' | Sub-folder: '{sub_folder}'", flush=True)
+        
+        # Fetch the registry layout via the official string lookup endpoint
+        repo_files = list_repo_files(repo_id, repo_type="dataset")
+        
+        # Cleanly filter matching records inside the designated subdirectory layout
+        all_files = sorted([
+            f for f in repo_files 
+            if f.endswith('.npz') and (sub_folder is None or f.startswith(sub_folder))
+        ])
+        
+        if not all_files:
+            raise ValueError(f"No .npz files found in HF path '{hf_path}' subfolder '{sub_folder}'!")
+
+        # Calculate space constraints using download_fraction
+        num_files = max(1, int(len(all_files) * download_fraction))
+        files_to_download = all_files[:num_files]
+        
+        print(f"[Master] Starting download of {num_files} files ({download_fraction*100:.1f}%) from HF...", flush=True)
+        
+        # Iterate and stream safely while keeping Slurm log updates clean
+        for idx, filename in enumerate(files_to_download, 1):
+            if idx == 1 or idx == num_files or idx % 5 == 0:
+                percent_done = (idx / num_files) * 100
+                print(f"[Slurm-Download] Progress: {idx}/{num_files} files grabbed ({percent_done:.1f}%) | Fetching: {filename.split('/')[-1]}", flush=True)
+            
+            hf_hub_download(
+                repo_id=repo_id,
+                repo_type="dataset",
+                filename=filename,
+                cache_dir=temp_dir, 
+                local_dir=temp_dir
+            )
+        
+        print("[Master] Dataset download complete! Proceeding to environment loading...", flush=True)
+        
+        # Point the local directory target directly to the temporary download tree
+        if sub_folder:
+            replay_dir = Path(temp_dir) / sub_folder
+        else:
+            replay_dir = Path(temp_dir)
+            
+        print(f"[Master] Localized data folder target: {replay_dir}", flush=True)
+    else:
+        replay_dir = Path(replay_dir)
+    # ----------------------------------------------
+
     max_size_per_worker = max_size // max(1, num_workers)
 
     iterable = OfflineReplayBuffer(
@@ -256,8 +293,6 @@ def make_replay_loader(
         cfg,
         relabel,
         obs,
-        is_local_data,
-        hf_path
     )
 
     loader = torch.utils.data.DataLoader(

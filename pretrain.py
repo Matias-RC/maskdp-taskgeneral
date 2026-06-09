@@ -104,6 +104,8 @@ def main(cfg):
         domain,
         cfg.agent.transformer_cfg.traj_length,
         relabel=False,
+        is_local_data=cfg.get("is_local_data", True), #.get() method supported by OmegaConf
+        hf_path=cfg.get("hf_path", None)
     )
 
     train_iter = iter(train_loader)

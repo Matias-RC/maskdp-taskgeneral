@@ -35,5 +35,5 @@ python finetune_A2C.py\
     agent.transformer_cfg.n_head=4 \
     agent.transformer_cfg.n_enc_layer=3 \
     agent.transformer_cfg.n_dec_layer=2 \
-    
+    +agent.freeze_backbone=true\
         

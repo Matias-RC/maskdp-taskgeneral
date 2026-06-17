@@ -27,6 +27,24 @@ def get_domain(task):
         return "point_mass_maze"
     return task.split("_", 1)[0]
 
+def get_max_steps(env):
+    # unwrap
+    while hasattr(env, "_env"):
+        env = env._env
+
+    # New style: step limit already stored
+    if hasattr(env, "_step_limit"):
+        return int(env._step_limit)
+
+    # Old style: convert seconds → steps
+    time_limit = getattr(env, "_time_limit", None)
+
+    if time_limit is not None:
+        control_step = env._task.control_timestep()
+        return int(round(time_limit / control_step))
+
+    raise ValueError("Could not determine episode length")
+
 @hydra.main(config_path=".", config_name="finetune_A2C")
 def main(cfg):
     work_dir = Path.cwd()
@@ -53,11 +71,8 @@ def main(cfg):
         use_tb=cfg.use_tb,
         path=cfg.pretrained_path
     ).to(device)
-    time_limit = getattr(env, "_time_limit", None)
-    assert time_limit is not None
-    control_step = env._env._task.control_timestep
 
-    max_steps = int(round(time_limit / control_step))
+    max_steps = get_max_steps(env)
     # 3. Initialize the Sequence Replay Buffer
     buffer = SequenceRB(
         size=cfg.buffer_size,

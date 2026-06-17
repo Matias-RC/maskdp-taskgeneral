@@ -7,7 +7,7 @@ task: walker_walk
 discount: 0.99
 
 # Pretrained Model Path
-pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_0.pt
+pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_200000.pt
 
 # RL / A2C Fine-tuning Hyperparameters
 gamma: 0.99
@@ -23,7 +23,7 @@ epochs: 2               # Number of optimization passes over the collected rollo
 batch_size: 64          # Batch size for fine-tuning updates
 
 # Replay Buffer Settings
-buffer_size: 100          # Number of full episodes to store before updating
+buffer_size: 10          # Number of full episodes to store before updating
 timeout_limit: 1000     # Standard max steps for DeepMind Control suite tasks
 #snapshot config:
 agent:
@@ -32,7 +32,7 @@ agent:
 use_tb: false
 use_wandb: true
 project: finetune_biped_to_walk
-notes: "ppo-finetuning"
+notes: "ppo-finetuning-snap-200000"
 exp_name: output
 snapshot_dir: snapshot
 save_every: 100          # Save a snapshot every X iterations

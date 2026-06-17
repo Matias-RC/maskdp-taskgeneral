@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=maskdp_finetune_walker_snap_0    # Job name
+#SBATCH --job-name=maskdp_bc_walker_walk         # Job name updated for BC
 #SBATCH --mail-type=BEGIN,END,FAIL       # Mail (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=zzdude70@gmail.com    # El mail del usuario
 #SBATCH --output=logs/%x-%j.out          # Log file (%x=job-name, %j=job-ID)
@@ -17,23 +17,22 @@
 
 #SBATCH --chdir=/home/matias_rodriguez/maskdp-taskgeneral
 
-
 # --- Environment setup ---
-# Use absolute path to guarantee conda sources correctly
-source "/home/matias_rodriguez/miniconda3/etc/profile.d/conda.sh"
+source "./miniconda3/etc/profile.d/conda.sh"
 conda activate maskdp
-
 pwd
-echo "Finetuning MaskDP on walker_walk task..."
+echo "Fine-tuning MaskDP (Behavioral Cloning) on expert walker_walk task..."
 
+PRETRAINED_SNAPSHOT="/home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_0.pt"
 
-python finetune_A2C.py\
-    agent.PE_type=joint\
-    agent.transformer_cfg.traj_length=64 \
-    agent.transformer_cfg.loss="total" \
-    agent.transformer_cfg.n_embd=256 \
-    agent.transformer_cfg.n_head=4 \
-    agent.transformer_cfg.n_enc_layer=3 \
-    agent.transformer_cfg.n_dec_layer=2 \
-    
-        
+python finetune_BC.py \
+    task=walker_walk \
+    pretrained_path=$PRETRAINED_SNAPSHOT \
+    agent.freeze_backbone=false \
+    agent.PE_type='joint' \
+    batch_size=256 \
+    lr=1e-4 \
+    num_grad_steps=100000 \
+    project=final_mt_mdp_bc \
+    use_wandb=True \
+    seed=1

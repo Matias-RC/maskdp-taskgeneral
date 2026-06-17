@@ -41,20 +41,10 @@ class MaskDPTrainer:
             s_ctx = self.s_seq[:, -self.max_history:]
             a_ctx = self.a_seq[:, -self.max_history+1:]
             r_ctx = self.r_seq[:, -self.max_history+1:]
-            
-            if a_ctx.shape[1] < s_ctx.shape[1]:
-                pad_len = s_ctx.shape[1] - a_ctx.shape[1]
-                pad_a = torch.zeros((a_ctx.shape[0], pad_len, a_ctx.shape[2]), device=self.device)
-                pad_r = torch.zeros((r_ctx.shape[0], pad_len, r_ctx.shape[2]), device=self.device)
-                
-                a_ctx = torch.cat([a_ctx, pad_a], dim=1)
-                r_ctx = torch.cat([r_ctx, pad_r], dim=1)
 
-            # Query Agent
             pi, vf = self.agent.act(s_ctx, a_ctx, r_ctx)
             action_np = pi.detach().cpu().numpy()[0]
             
-            # Step environment
             time_step = self.env.step(action_np)
             next_obs = time_step.observation
             reward = time_step.reward
@@ -100,8 +90,8 @@ class MaskDPTrainer:
                 self.s_seq = torch.cat([self.s_seq, next_obs_t], dim=1)
                 
                 s_ctx_final = self.s_seq[:, -self.max_history:]
-                a_ctx_final = torch.cat([self.a_seq[:, -self.max_history+1:], torch.zeros_like(action_t)], dim=1)
-                r_ctx_final = torch.cat([self.r_seq[:, -self.max_history+1:], torch.zeros_like(reward_t)], dim=1)
+                a_ctx_final = self.a_seq[:, -self.max_history+1:]
+                r_ctx_final = self.r_seq[:, -self.max_history+1:]
                 
                 with torch.no_grad():
                     _, last_val = self.agent.act(s_ctx_final, a_ctx_final, r_ctx_final)
@@ -180,7 +170,7 @@ class MaskDPTrainer:
         sub_rewards = torch.stack(sub_rewards, dim=0)
         sub_values = torch.stack(sub_values, dim=0)
         sub_advantages = torch.stack(sub_advantages, dim=0)
-
+        print(sub_advantages.shape)
         num_samples = sub_states.shape[0]
         batch_size = getattr(self.cfg, 'batch_size', 64)
         
@@ -193,10 +183,14 @@ class MaskDPTrainer:
             for start_idx in range(0, num_samples, batch_size):
                 end_idx = min(start_idx + batch_size, num_samples)
                 b_states = sub_states[start_idx:end_idx]
-                b_actions = sub_actions[start_idx:end_idx]
-                b_rewards = sub_rewards[start_idx:end_idx]
-                
+                b_actions = sub_actions[start_idx:end_idx, :-1]
+                b_rewards = sub_rewards[start_idx:end_idx, :-1]
+
                 action_mean, v_preds = self.agent._forward_transformer(b_states, b_actions, b_rewards)
+
+                action_mean = action_mean[:, :-1] # Slice it because it has a longer length and b_actions
+                v_preds = v_preds[:, :-1].squeeze(-1)
+
                 action_std = self.agent.actor_logstd.exp().expand_as(action_mean)
                 dist = torch.distributions.Normal(action_mean, action_std)
                 log_probs = dist.log_prob(b_actions).sum(dim=-1)
@@ -218,12 +212,12 @@ class MaskDPTrainer:
                 batch_indices = permutation[start_idx : start_idx + batch_size]
                 
                 b_states = sub_states[batch_indices]
-                b_actions = sub_actions[batch_indices]
-                b_rewards = sub_rewards[batch_indices]
-                b_advantages = sub_advantages[batch_indices]
+                b_actions = sub_actions[batch_indices, :-1]
+                b_rewards = sub_rewards[batch_indices, :-1]
+                b_advantages = sub_advantages[batch_indices, :-1]
+
                 b_old_log_probs = sub_old_log_probs[batch_indices]
                 b_old_values = sub_old_values[batch_indices]
-                
                 metrics = self.agent.predict(
                     b_states, b_actions, b_rewards, b_advantages, b_old_log_probs, b_old_values
                 )

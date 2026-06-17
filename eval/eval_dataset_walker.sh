@@ -5,13 +5,13 @@
 #SBATCH --output=logs/%x-%j.out          # Log file (%x=job-name, %j=job-ID)
 #SBATCH --error=logs/%x-%j.err           # Error log                    
 #SBATCH --gres=gpu:1                     # Number of GPUs
-#SBATCH --cpus-per-task=16               # CPU cores
+#SBATCH --cpus-per-task=8             # CPU cores
 #SBATCH --nodelist=scylla
 #SBATCH --partition=ialab
 #SBATCH --account=defaultacc             
 #SBATCH --qos=normal 
 #SBATCH --time=24:00:00
-#SBATCH --mem-per-cpu=8G
+#SBATCH --mem=10G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 
@@ -38,7 +38,7 @@ python eval_goal.py \
     snapshot_ts=0 \
     project=eval-single-goal \
     replan=false \
-    use_wandb=True \
+    use_wandb=false \
     +exp_name=eval_dataset \
     ++inspect_data_only=True \
     ++inspect_max_steps=1000

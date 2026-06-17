@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=maskdp_pretrain_walker_run       # Job name
+#SBATCH --job-name=maskdp_pretrain_walker_walk       # Job name
 #SBATCH --mail-type=BEGIN,END,FAIL       # Mail (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=matias.rodriguez@cenia.cl    # El mail del usuario
 #SBATCH --output=logs/%x-%j.out          # Log file (%x=job-name, %j=job-ID)
@@ -21,9 +21,8 @@
 source "./miniconda3/etc/profile.d/conda.sh"
 conda activate maskdp
 pwd
-echo "Pretraining MaskDP on walker_run task..."
+echo "Pretraining MaskDP on walker_walk task..."
 
-export CUDA_VISIBLE_DEVICES=4
 
 python pretrain.py \
     agent=mdp \
@@ -36,7 +35,7 @@ python pretrain.py \
     agent.transformer_cfg.n_dec_layer=2 \
     agent.transformer_cfg.norm='l2' \
     num_grad_steps=400010 \
-    task=walker_run \
+    task=walker_walk \
     snapshot_dir=snapshot \
     resume=false \
     project=final_mt_mdp \

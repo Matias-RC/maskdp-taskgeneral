@@ -252,6 +252,11 @@ def eval_dataset(
     
     batch = next(dataset_iter)
     _, expert_actions, physics_seq, _, _ = utils.to_torch(batch, device)
+    print(physics_seq.shape)
+    print(env.physics.get_state().shape)
+    print(env.physics.data.qpos.shape)
+    print(env.physics.data.qvel.shape)
+    return
 
     while eval_until_episode(episode):
         time_step = env.reset()

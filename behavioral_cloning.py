@@ -25,7 +25,7 @@ def get_domain(task):
         return "point_mass_maze"
     return task.split("_", 1)[0]
 
-@hydra.main(config_path=".", config_name="finetune_BC")
+@hydra.main(config_path=".", config_name="behavioral_cloning")
 def main(cfg):
     work_dir = Path.cwd()
     print(f"Workspace: {work_dir}")
@@ -85,7 +85,7 @@ def main(cfg):
         cfg.replay_buffer_num_workers,
         cfg.discount,
         domain,
-        cfg.agent.traj_length 
+        cfg.agent.transformer_cfg.traj_length,
         relabel=False,
         is_local_data=cfg.get("is_local_data", True),
         hf_path=cfg.get("hf_path", None)
@@ -104,8 +104,8 @@ def main(cfg):
     while train_until_step(global_step):
         batch = next(train_iter)
         obs, action, reward, discount, next_obs, step_type = utils.to_torch(batch, device)
-        
-        metrics = agent.update(obs, action)
+
+        metrics = agent.rex_requested_act(obs, action)
 
         logger.log_metrics(metrics, global_step, ty="train")
         if log_every_step(global_step):

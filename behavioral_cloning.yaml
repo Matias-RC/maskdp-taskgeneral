@@ -38,6 +38,9 @@ project: final_mt_mdp_bc
 notes: "behavioral cloning on expert walker_walk"
 exp_name: bc_output
 
+agent:
+  PE_type: ???
+
 # Hydra working directory setup
 hydra:
   run:

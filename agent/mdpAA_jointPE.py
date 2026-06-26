@@ -130,14 +130,12 @@ class MaskDPJointPE(nn.Module):
 
         return x_masked, mask, ids_restore
 
-    def last_two_masking(self, x):
+    def special_masking(self, x, last_n=2):
         N, L, D = x.shape
 
-        assert N == 1
-        assert L > 2
-        assert L%3 == 0
+        assert L > last_n
 
-        x_masked = x[:, :-2]
+        x_masked = x[:, :-last_n]
 
         mask = torch.ones((N, L), device=x.device)
         mask[:, :-2] = 0
@@ -147,7 +145,15 @@ class MaskDPJointPE(nn.Module):
         return x_masked, mask, ids_restore
 
     
-    def forward_encoder(self, states, actions, rewards: Optional[torch.Tensor], mask_ratio, finetune_input=False):
+    def forward_encoder(
+            self, 
+            states, 
+            actions, 
+            rewards: Optional[torch.Tensor], 
+            mask_ratio, 
+            finetune_input=False,
+            do_last_n=2
+        ):
         batch_size, T, obs_dim = states.size()
         
         # Add modality and timestep embeddings directly to features
@@ -167,8 +173,7 @@ class MaskDPJointPE(nn.Module):
         if not finetune_input:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
-            assert rewards is not None
-            x, mask, ids_restore = self.last_two_masking(x)
+            x, mask, ids_restore = self.special_masking(x, last_n=do_last_n)
         # Slice attention mask to match current flattened length
         curr_len = x.shape[1]
         attn_mask = self.attn_mask[:, :, :curr_len, :curr_len]

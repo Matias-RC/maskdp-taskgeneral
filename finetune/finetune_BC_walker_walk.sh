@@ -23,13 +23,19 @@ conda activate maskdp
 pwd
 echo "Fine-tuning MaskDP (Behavioral Cloning) on expert walker_walk task..."
 
-PRETRAINED_SNAPSHOT="/home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_0.pt"
+PRETRAINED_SNAPSHOT="/home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_200000.pt"
 
-python finetune_BC.py \
+python behavioral_cloning.py \
     task=walker_walk \
     pretrained_path=$PRETRAINED_SNAPSHOT \
-    agent.freeze_backbone=false \
-    agent.PE_type='joint' \
+    +agent.freeze_backbone=false \
+    agent.PE_type=joint\
+    agent.transformer_cfg.traj_length=64 \
+    agent.transformer_cfg.loss="total" \
+    agent.transformer_cfg.n_embd=256 \
+    agent.transformer_cfg.n_head=4 \
+    agent.transformer_cfg.n_enc_layer=3 \
+    agent.transformer_cfg.n_dec_layer=2 \
     batch_size=256 \
     lr=1e-4 \
     num_grad_steps=100000 \

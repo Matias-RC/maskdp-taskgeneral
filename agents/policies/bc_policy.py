@@ -8,8 +8,8 @@ from collections import OrderedDict
 import utils
 from dm_control.utils import rewards
 from einops import rearrange, reduce, repeat
-from agent.modules.attention import Block, CausalSelfAttention, mySequential
-from agent.mdp import MaskedDP
+from agents.modules.attention import Block, CausalSelfAttention, mySequential
+from agents.maskdp.mdp import MaskedDP
 import math
 
 import random

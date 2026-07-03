@@ -1,4 +1,6 @@
-from mtm_research.custom_dmc_tasks import (
+# envs/dmc/__init__.py
+
+from . import (
     cheetah,
     hopper,
     jaco,
@@ -6,7 +8,6 @@ from mtm_research.custom_dmc_tasks import (
     quadruped,
     walker,
 )
-
 
 def make(
     domain, task, task_kwargs=None, environment_kwargs=None, visualize_reward=False

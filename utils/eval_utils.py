@@ -1,33 +1,21 @@
-import warnings
+"""Helpers and evaluation loops for offline snapshot evaluation.
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-import os
-
-os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
-os.environ["MUJOCO_GL"] = "egl"
+These used to live directly inside the eval entry-point script. They're
+pulled out here so that eval_offline.py, like offline.py / online.py, keeps
+the root file free of anything but `main`.
+"""
 
 from pathlib import Path
 
 import hydra
 import numpy as np
 import torch
-from dm_env import specs
 
-import dmc
-import utils
-from logger import Logger
-from replay_buffer import make_replay_loader
-from video import VideoRecorder
-import wandb
-import omegaconf
+import utils.utils as utils
 
-torch.backends.cudnn.benchmark = True
-
-#eval goal script
 
 def get_domain(task):
-    '''Get name of task'''
+    """Get name of task"""
     if task.startswith("point_mass_maze"):
         return "point_mass_maze"
     return task.split("_", 1)[0]
@@ -38,11 +26,11 @@ def get_data_seed(seed, num_data_seeds):
 
 
 def get_dir(cfg):
-    '''Get path to model weights'''
+    """Get path to model weights"""
 
-    # Resolves back to /home/matias_rodriguez/maskdp-taskgeneral
+    # Resolves back to the workspace root Hydra was launched from
     original_working_dir = Path(hydra.utils.get_original_cwd())
-    
+
     # Anchors the snapshot directory to your true workspace root
     snapshot_base_dir = original_working_dir / cfg.snapshot_base_dir
     snapshot_dir = snapshot_base_dir / get_domain(cfg.task)
@@ -143,7 +131,7 @@ def eval_bc(
 
         video_recorder.render_goal(env, goal_physics[episode])
         video_recorder.save(f"{global_step}.mp4")
-        
+
         episode += 1
         total_dist2goal.append(dist2goal)
 
@@ -179,10 +167,10 @@ def eval_mdp(
         with env.physics.reset_context():
             env.physics.set_state(start_physics[episode].cpu())
         dist2goal = 1e6
-        
+
         is_last_episode = (episode == num_eval_episodes - 1)
         video_recorder.init(env, enabled=is_last_episode)
-        
+
         if replan is False:
             with torch.no_grad(), utils.eval_mode(agent):
                 actions = agent.act(
@@ -217,14 +205,14 @@ def eval_mdp(
                     time_step.observation - goal_obs[episode].cpu().numpy()
                 )
                 dist2goal = min(dist2goal, dist)
-                
+
                 if is_last_episode:
                     video_recorder.record(env)
                 step += 1
 
         if is_last_episode:
             video_recorder.render_goal(env, goal_physics[episode])
-            video_name = f"{cfg.task}_step_{global_step}.mp4" 
+            video_name = f"{cfg.task}_step_{global_step}.mp4"
             video_recorder.save(video_name)
 
         episode += 1
@@ -250,19 +238,19 @@ def eval_dataset(
 ):
     step, episode = 0, 0
     eval_until_episode = utils.Until(num_eval_episodes)
-    
+
     batch = next(dataset_iter)
     _, expert_actions, physics_seq, _, _ = utils.to_torch(batch, device)
 
     while eval_until_episode(episode):
         time_step = env.reset()
-        
+
         with env.physics.reset_context():
             env.physics.set_state(physics_seq[episode, 0].cpu())
-        
+
         is_last_episode = (episode == num_eval_episodes - 1)
         video_recorder.init(env, enabled=is_last_episode)
-        
+
         for action in expert_actions[episode]:
             time_step = env.step(action.cpu().numpy())
             if is_last_episode:
@@ -270,7 +258,7 @@ def eval_dataset(
             step += 1
 
         if is_last_episode:
-            video_name = f"dataset_replay_{cfg.task}_step_{global_step}.mp4" 
+            video_name = f"dataset_replay_{cfg.task}_step_{global_step}.mp4"
             video_recorder.save(video_name)
 
         episode += 1
@@ -278,157 +266,3 @@ def eval_dataset(
     with logger.log_and_dump_ctx(global_step, ty="eval_dataset") as log:
         log("episode_length", step / episode)
         log("step", global_step)
-
-
-@hydra.main(config_path=".", config_name="eval")
-def main(cfg):
-    work_dir = Path.cwd()
-    print(f"workspace: {work_dir}")
-
-    utils.set_seed_everywhere(cfg.seed)
-    device = torch.device(cfg.device)
-
-    # create envs
-    env = dmc.make(cfg.task, seed=cfg.seed)
-
-    # create agent
-    path = get_dir(cfg)
-    agent = hydra.utils.instantiate(
-        cfg.agent,
-        obs_shape=env.observation_spec().shape,
-        action_shape=env.action_spec().shape,
-        path=path,
-    )
-
-    # create logger
-    cfg.agent.obs_shape = env.observation_spec().shape
-    cfg.agent.action_shape = env.action_spec().shape
-    cfg.agent.transformer_cfg = agent.config
-    exp_name = "_".join([cfg.agent.name, cfg.task, str(cfg.replan), str(cfg.seed)])
-    wandb_config = omegaconf.OmegaConf.to_container(
-        cfg, resolve=True, throw_on_missing=True
-    )
-    wandb.init(
-        project=cfg.project,
-        entity=None,
-        name=exp_name,
-        config=wandb_config,
-        settings=wandb.Settings(
-            start_method="thread",
-            _disable_stats=True,
-        ),
-        mode="online" if cfg.use_wandb else "offline",
-        notes=cfg.notes,
-    )
-    logger = Logger(work_dir, use_tb=cfg.use_tb, use_wandb=cfg.use_wandb)
-
-    # create data storage
-    domain = get_domain(cfg.task)
-    goal_dir = Path(cfg.goal_buffer_dir) / cfg.task
-    print(f"goal buffer dir: {goal_dir}")
-
-    # Initialize video recorders and baseline steps early to prevent scope runtime issues
-    video_recorder = VideoRecorder(work_dir if cfg.save_video else None)
-    global_step = 0
-    timer = utils.Timer()
-
-    # --- Dataset Inspection Route ---
-    if getattr(cfg, "inspect_data_only", False):
-        import copy
-        from omegaconf import OmegaConf
-        
-        # 1. Deepcopy agent config and unlock it to allow custom fields
-        buffer_cfg = copy.deepcopy(agent.config)
-        OmegaConf.set_struct(buffer_cfg, False)
-        
-        # 2. Define lengths for the dataset tracking
-        buffer_cfg.context_length = 250   # How many sequential action steps you want to evaluate
-        buffer_cfg.forecast_length = 1    # Dummy length to prevent slice math errors in the legacy code
-        
-        dataset_loader = make_replay_loader(
-            env,
-            goal_dir,
-            cfg.goal_buffer_size,
-            cfg.num_eval_episodes, 
-            cfg.goal_buffer_num_workers,
-            cfg.discount,
-            domain=domain,
-            mode="prompt",  
-            cfg=buffer_cfg,  # Pass the patched configuration here
-            relabel=False,
-        )
-        dataset_iter = iter(dataset_loader)
-        eval_dataset(
-            global_step=global_step,
-            agent=agent,
-            env=env,
-            logger=logger,
-            dataset_iter=dataset_iter,
-            device=device,
-            num_eval_episodes=cfg.num_eval_episodes,
-            video_recorder=video_recorder,
-            cfg=cfg
-        )
-        return
-
-    # --- Standard Model Evaluation Route ---
-    goal_loader = make_replay_loader(
-        env,
-        goal_dir,
-        cfg.goal_buffer_size,
-        cfg.num_eval_episodes,
-        cfg.goal_buffer_num_workers,
-        cfg.discount,
-        domain=domain,
-        traj_length=1,
-        mode="goal",
-        cfg=agent.config,
-        relabel=False,
-    )
-    goal_iter = iter(goal_loader)
-
-    eval_every_step = utils.Every(cfg.eval_every_steps)
-
-    if eval_every_step(global_step):
-        logger.log("eval_total_time", timer.total_time(), global_step)
-        if cfg.agent.name == "mdp_goal":
-            eval_mdp(
-                global_step,
-                agent,
-                env,
-                logger,
-                goal_iter,
-                device,
-                cfg.num_eval_episodes,
-                video_recorder,
-                cfg,
-                replan=cfg.replan,
-            )
-        elif cfg.agent.name == "bc_goal":
-            eval_bc(
-                global_step,
-                agent,
-                env,
-                logger,
-                goal_iter,
-                device,
-                cfg.num_eval_episodes,
-                video_recorder,
-            )
-        elif cfg.agent.name == "seq_goal":
-            eval_seq_bc(
-                global_step,
-                agent,
-                env,
-                logger,
-                goal_iter,
-                device,
-                cfg.num_eval_episodes,
-                video_recorder,
-            )
-        else:
-            raise NotImplementedError
-
-
-if __name__ == "__main__":
-    main()

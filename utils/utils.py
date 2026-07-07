@@ -92,6 +92,10 @@ def param_norm(params, norm_type=2.0):
     )
     return total_norm.item()
 
+def get_domain(task):
+    if task.startswith("point_mass_maze"):
+        return "point_mass_maze"
+    return task.split("_", 1)[0]
 
 class Until:
     def __init__(self, until, action_repeat=1):

@@ -41,4 +41,4 @@ exp_name: output
 # This is the working directory for the script
 hydra:
   run:
-    dir: "/home/matias_rodriguez/maskdp-taskgeneral/maskdp_models/${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}_${agent.name}"
+    dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}

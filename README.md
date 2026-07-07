@@ -27,8 +27,8 @@ Every architectural module contains its own `README.md`. These files map the loc
 **Example Structure:**
 ```
 ├── data/
-│   ├── __init__.py
-│   ├── README.md              # ← Explains data patterns used here
-│   ├── replay_buffer.py       # Behavioral: Sequence Rollout Buffer Iterator
-│   └── loaders.py             # Creational: Streaming Data Iterator
+    ├── __init__.py
+    ├── README.md              # ← Explains data patterns used here
+    ├── replay_buffer.py       # Behavioral: Sequence Rollout Buffer Iterator
+    └── loaders.py             # Creational: Streaming Data Iterator
 ```

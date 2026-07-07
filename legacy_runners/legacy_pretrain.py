@@ -15,10 +15,10 @@ import hydra
 import torch
 # from dm_env import specs
 
-import dmc
+from envs import dmc
 import utils
-from logger import Logger
-from replay_buffer import make_replay_loader
+from utils.logger import Logger
+from data.replay_buffer import make_replay_loader
 # from video import VideoRecorder
 import wandb
 import omegaconf

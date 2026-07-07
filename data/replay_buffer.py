@@ -32,7 +32,7 @@ def save_episode(episode, fn):
             f.write(bs.read())
 
 
-def load_episode(fn, domain, obs):
+def load_episode(fn, obs):
     with fn.open("rb") as f:
         episode = np.load(f)
         episode = {k: episode[k] for k in episode.keys()}
@@ -61,7 +61,6 @@ class OfflineReplayBuffer(IterableDataset):
         max_size,
         num_workers,
         discount,
-        domain,
         traj_length,
         mode,
         cfg,
@@ -70,7 +69,6 @@ class OfflineReplayBuffer(IterableDataset):
     ):
         self._env = env
         self._replay_dir = Path(replay_dir)
-        self._domain = domain
         self._mode = mode
         self._size = 0
         self._max_size = max_size
@@ -111,7 +109,7 @@ class OfflineReplayBuffer(IterableDataset):
             if eps_idx % self._num_workers != worker_id:
                 continue
                 
-            episode = load_episode(eps_fn, self._domain, self._obs)
+            episode = load_episode(eps_fn, self._obs)
             if relable:
                 episode = self._relable_reward(episode)
             self._episode_fns.append(eps_fn)
@@ -203,7 +201,6 @@ def make_replay_loader(
     batch_size,
     num_workers,
     discount,
-    domain,
     traj_length=1,
     mode=None,
     cfg=None,
@@ -214,7 +211,7 @@ def make_replay_loader(
     hf_path=None,
     download_fraction=0.1,
 ):
-    # --- Hugging Face Safe Local Download Logic ---
+    # hugging face safe local download logic
     if not is_local_data and hf_path is not None:
         # Create a true temporary directory that completely bypasses persistent cache
         temp_dir = tempfile.mkdtemp(prefix="hf_replay_cache_")
@@ -287,7 +284,6 @@ def make_replay_loader(
         max_size_per_worker,
         num_workers,
         discount,
-        domain,
         traj_length,
         mode,
         cfg,

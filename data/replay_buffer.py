@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import IterableDataset
-from utils import get_norm
+from utils.utils import get_norm
 
 # Hugging Face programmatic tools
 from huggingface_hub import list_repo_files, hf_hub_download
@@ -34,7 +34,7 @@ def save_episode(episode, fn):
 
 def load_episode(fn, obs):
     with fn.open("rb") as f:
-        episode = np.load(f)
+        episode = np.load(f, allow_pickle=True)
         episode = {k: episode[k] for k in episode.keys()}
         return episode
 

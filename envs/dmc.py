@@ -7,7 +7,7 @@ from dm_control import manipulation, suite
 from dm_control.suite.wrappers import action_scale, pixels
 from dm_env import StepType, specs
 
-import custom_dmc_tasks as cdmc
+import envs.custom_dmc as cdmc
 
 
 class ExtendedTimeStep(NamedTuple):
@@ -398,3 +398,12 @@ def make(name, obs_type="states", frame_stack=1, action_repeat=1, seed=1):
     env = action_scale.Wrapper(env, minimum=-1.0, maximum=+1.0)
     env = ExtendedTimeStepWrapper(env)
     return env
+
+class Factory:
+    def __call__(self, name, obs_type="states", frame_stack=1, action_repeat=1, seed=1):
+        return make(
+            name=name, 
+            obs_type=obs_type, 
+            frame_stack=frame_stack, 
+            action_repeat=action_repeat, 
+            seed=seed)

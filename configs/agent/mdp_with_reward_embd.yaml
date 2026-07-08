@@ -1,6 +1,5 @@
 # @package agent
-_target_: agent.mdpAA_jointPE.JointDPAgent
-name: mdpAA_jointPE
+_target_: agents.maskdp.basic_with_reward_encoding.TripletDPAgent # Ensure this matches the class name inside your file
 obs_shape: ??? 
 action_shape: ??? 
 device: ${device}

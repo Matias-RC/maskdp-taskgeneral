@@ -1,0 +1,17 @@
+defaults:
+  - env_cls_route: dmc_basic
+  - agent: mdp_jointPE
+  - settings: mdp_pretrain
+  - override hydra/launcher: submitit_local
+
+# Replay buffer dir
+replay_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/datasets/walker_walk_expert
+# misc
+seed: 1
+device: cuda
+save_video: true
+use_tb: false
+use_wandb: true
+project: mdp
+notes: "pretrain"
+exp_name: output

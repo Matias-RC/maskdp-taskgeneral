@@ -1,0 +1,33 @@
+# task settings
+domain: walker
+task: walker_walk
+discount: 0.99
+name: mdpJointPE
+# train settings
+num_grad_steps: 400010 # NUMBER  OF TRAINING STEPS
+log_every_steps: 1000
+# eval
+eval_every_steps: 10000
+num_eval_episodes: 10
+# snapshot
+snapshots: [0, 100000, 200000, 300000, 350000, 400000, 450000, 500000, 550000, 600000]
+snapshot_dir: snapshots # If not absolute, this goes in cwd
+# resume
+resume: false
+resume_dir: none
+resume_step: 0
+
+is_local_data: false
+hf_path: Null
+
+# Dummy data
+# replay_buffer_dir: /home/bibarel/workspace/maskdp-taskgeneral/maskdp_data/maskdp_train
+# MaskDP data
+
+# ExORL data
+# replay_buffer_dir: /home/bibarel/workspace/exorl/datasets
+replay_buffer_size: 100000000
+replay_buffer_num_workers: 16
+batch_size: ${agent.batch_size}
+
+context: pretrained_mdp

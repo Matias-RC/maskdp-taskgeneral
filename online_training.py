@@ -23,6 +23,7 @@ from utils.utils import set_seed_everywhere, Until, Every, Timer
 
 torch.backends.cudnn.benchmark = True
 
+#Online training
 @hydra.main(version_base=None, config_path="configs", config_name="online")
 def main(cfg: DictConfig):
     work_dir = Path.cwd()
@@ -35,12 +36,12 @@ def main(cfg: DictConfig):
     print(f"Using device: {device}")
 
     # Since we may work with dmc, mtm_dmc or future environment standards
-    env_cls = instantiate(
+    env_maker = instantiate(
         cfg.env_cls_route
     )
 
     # Create environment for specified task
-    env = env_cls.make(cfg.task, seed=cfg.seed)
+    env = env_maker(cfg.task, seed=cfg.seed)
 
     trainer = instantiate(
         cfg.trainer, #Activates configs from "Algorithms" and consists of PPO / A2C type trainers

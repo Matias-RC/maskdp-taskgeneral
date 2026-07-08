@@ -9,7 +9,7 @@ import utils
 from dm_control.utils import rewards
 from einops import rearrange, reduce, repeat
 from agents.modules.attention import Block, CausalSelfAttention, mySequential
-from agents.maskdp.mdp import MaskedDP
+from agents.maskdp.basic import MaskedDP
 import math
 
 import random

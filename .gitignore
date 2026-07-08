@@ -8,7 +8,8 @@ nbs/
 notebooks/
 slurm/
 slurm-*.out
-maskdp_data/
+datasets/
 outputs/
 snapshots/
 wandb/
+logs/

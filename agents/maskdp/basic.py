@@ -175,7 +175,6 @@ class MaskedDP(nn.Module):
 class MaskedDPAgent:
     def __init__(
         self,
-        name,
         obs_shape,
         action_shape,
         device,

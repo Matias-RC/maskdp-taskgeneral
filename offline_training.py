@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = True
 #Offline training
 # https://hydra.cc/docs/tutorials/basic/your_first_app/using_config/
 # An introduction to the use of the hydra config decorator
-@hydra.main(version_base=None, config_path="configs", config_name="offline")
+@hydra.main(config_path="configs", config_name="offline")
 def main(cfg: DictConfig):
     work_dir = Path.cwd()
     # Print the actual directory determined by hydra config
@@ -38,15 +38,17 @@ def main(cfg: DictConfig):
     device = torch.device(cfg.device)
     print(f"Using device: {device}")
 
+
+
     # Since we may work with dmc, mtm_dmc or future environment standards
     # https://hydra.cc/docs/advanced/instantiate_objects/overview/
     # A brief explanation to object instantiation with hydra
-    env_cls = instantiate(
+    env_maker = instantiate(
         cfg.env_cls_route
     )
 
     # Create environment for specified task
-    env = env_cls.make(cfg.task, seed=cfg.seed)
+    env = env_maker(cfg.settings.task, seed=cfg.seed)
 
     # Create agent. Utils will instantiate a class
     # Since cfg.agent is 'mdp'. The class will be specified by configs/agent/*.yaml
@@ -56,17 +58,17 @@ def main(cfg: DictConfig):
         obs_shape=env.observation_spec().shape,
         action_shape=env.action_spec().shape,
     )
-    
+
     # Create snapshot directory
     # cfg.context : Since both behavioural cloning and pretraining are offline the script is reused for both.
-    snapshot_dir = work_dir / "snapshots" / cfg.context / cfg.domain / cfg.algorithm / str(cfg.seed)
+    snapshot_dir = work_dir / "snapshots" / cfg.settings.context / cfg.settings.domain 
     snapshot_dir.mkdir(exist_ok=True, parents=True)
 
     # Create logger
     cfg.agent.obs_shape = env.observation_spec().shape
     cfg.agent.action_shape = env.action_spec().shape
     exp_name = "_".join([
-        cfg.agent.name, cfg.domain, str(cfg.seed), str(cfg.algorithm)
+        cfg.settings.name, cfg.settings.domain, str(cfg.seed)
     ])
     # Create wandb_config from Hydra's omegaconf
     wandb_config = omegaconf.OmegaConf.to_container(
@@ -90,24 +92,24 @@ def main(cfg: DictConfig):
     train_loader = make_replay_loader(
         env=env,
         replay_dir=replay_train_dir,
-        max_size=cfg.replay_buffer_size,
-        batch_size=cfg.batch_size,
-        num_workers=cfg.replay_buffer_num_workers,
-        discount=cfg.discount,
+        max_size=cfg.settings.replay_buffer_size,
+        batch_size=cfg.settings.batch_size,
+        num_workers=cfg.settings.replay_buffer_num_workers,
+        discount=cfg.settings.discount,
         traj_length=cfg.agent.transformer_cfg.traj_length,
         relabel=False,
-        is_local_data=cfg.is_local_data,
-        hf_path=cfg.hf_path
+        is_local_data=cfg.settings.is_local_data,
+        hf_path=cfg.settings.hf_path
     )
     train_iter = iter(train_loader)
 
     timer = Timer()
 
-    global_step = cfg.resume_step
+    global_step = cfg.settings.resume_step
 
-    train_until_step = Until(cfg.num_grad_steps)
-    eval_every_step = Every(cfg.eval_every_steps)
-    log_every_step = Every(cfg.log_every_steps)
+    train_until_step = Until(cfg.settings.num_grad_steps)
+    eval_every_step = Every(cfg.settings.eval_every_steps)
+    log_every_step = Every(cfg.settings.log_every_steps)
 
     # True until global_step gets to cfg.num_grad_steps
     while train_until_step(global_step):
@@ -121,14 +123,14 @@ def main(cfg: DictConfig):
         if log_every_step(global_step):
             elapsed_time, total_time = timer.reset()
             with logger.log_and_dump_ctx(global_step, ty="train") as log:
-                log("fps", cfg.log_every_steps / elapsed_time)
+                log("fps", cfg.settings.log_every_steps / elapsed_time)
                 log("total_time", total_time)
                 log("step", global_step)
             # Upon exiting the context manager "LogAndDumpCtx", the logged
             # data is actually dumped to WandB
 
-        if global_step in cfg.snapshots:
-            snapshot = snapshot_dir / f"snapshot_{global_step}.pt"
+        if global_step in cfg.settings.snapshots:
+            snapshot = snapshot_dir / f"{cfg.settings.task}_{global_step}_{cfg.seed}.pt"
             payload = {
                 "model": agent.model.state_dict(),
                 "cfg": cfg.agent.transformer_cfg,

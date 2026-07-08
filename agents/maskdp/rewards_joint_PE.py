@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from collections import OrderedDict
 from typing import Optional
 
-import utils
+from utils import utils
 from dm_control.utils import rewards
 from einops import rearrange, reduce, repeat
 from agents.modules.attention import Block, CausalSelfAttention
@@ -279,7 +279,6 @@ class MaskDPJointPE(nn.Module):
 class JointDPAgent:
     def __init__(
         self,
-        name,
         obs_shape,
         action_shape,
         device,

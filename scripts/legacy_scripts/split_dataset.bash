@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH --job-name=split_dataset         # Job name
+#SBATCH --mail-type=BEGIN,END,FAIL       # Mail (NONE, BEGIN, END, FAIL, ALL)
+#SBATCH --mail-user=fivillagran@uc.cl    # El mail del usuario
+#SBATCH --output=logs/%x-%j.out          # Log file (%x=job-name, %j=job-ID)
+#SBATCH --error=logs/%x-%j.err           # Error log                    
+#SBATCH --gres=gpu:1                     # Number of GPUs
+#SBATCH --cpus-per-task=8                # CPU cores
+#SBATCH --time=24:00:00
+#SBATCH --mem-per-cpu=8G
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+
+#SBATCH --chdir=/home/bibarel/workspace
+
+# --- Environment setup ---
+source "./miniconda3/etc/profile.d/conda.sh"
+conda activate maskdp
+cd "./maskdp-taskgeneral"
+pwd
+echo "Splitting data for fine tuning."
+
+python split_dataset.py \
+    seed=1

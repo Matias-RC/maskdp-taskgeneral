@@ -19,7 +19,7 @@ device: cuda
 save_video: true
 use_tb: false
 use_wandb: true
-project: mdp_ppo
+project: mdp_eval
 notes: "finetune_ppo"
 exp_name: output
 transparent_training: true

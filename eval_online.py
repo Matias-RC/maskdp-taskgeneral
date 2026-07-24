@@ -93,7 +93,7 @@ def main(cfg: DictConfig):
         if log_every_step(global_step):
             elapsed_time, total_time = timer.reset()
             with logger.log_and_dump_ctx(global_step, ty="train") as log:
-                log("fps", cfg.settings.log_every_steps / elapsed_time)
+                log("fps", cfg.log_every_steps / elapsed_time)
                 log("total_time", total_time)
                 log("step", global_step)
             # Upon exiting the context manager "LogAndDumpCtx", the logged

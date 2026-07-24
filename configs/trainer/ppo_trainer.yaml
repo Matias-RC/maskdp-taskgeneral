@@ -1,0 +1,6 @@
+_target_: algorithms.CustomPPOTrainer.PPOTrainer
+
+cfg:
+  num_epochs: 12
+  rb_size: 32
+  batch_size: 1024

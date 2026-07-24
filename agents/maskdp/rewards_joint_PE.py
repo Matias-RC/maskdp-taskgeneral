@@ -43,6 +43,7 @@ class MaskDPJointPE(nn.Module):
         self.mod_embed_s = nn.Parameter(torch.zeros(1, 1, self.n_embd))
         self.mod_embed_a = nn.Parameter(torch.zeros(1, 1, self.n_embd))
         self.mod_embed_r = nn.Parameter(torch.zeros(1, 1, self.n_embd))
+        self.mod_embed_p = nn.Parameter(torch.zeros(1, 1, self.n_embd)) # padding
 
         self.encoder_blocks = nn.ModuleList(
             [Block(config) for _ in range(config.n_enc_layer)]
@@ -150,16 +151,16 @@ class MaskDPJointPE(nn.Module):
             states, 
             actions, 
             rewards: Optional[torch.Tensor], 
-            mask_ratio, 
+            mask_ratio,
+            pad_lengths: Optional[torch.Tensor] = None, 
             finetune_input=False,
             do_last_n=2
         ):
         batch_size, T, obs_dim = states.size()
-        
         # Add modality and timestep embeddings directly to features
         s_emb = self.state_embed(states) + self.mod_embed_s + self.pos_embed[:, :T, :]
+
         a_emb = self.action_embed(actions) + self.mod_embed_a + self.pos_embed[:, :T, :]
-        
         # Dynamically compose sequence based on modalities provided (pre-training vs finetuning)
         if rewards is not None:
             r_emb = self.reward_embed(rewards) + self.mod_embed_r + self.pos_embed[:, :T, :]
@@ -176,16 +177,25 @@ class MaskDPJointPE(nn.Module):
             x, mask, ids_restore = self.special_masking(x, last_n=do_last_n)
         # Slice attention mask to match current flattened length
         curr_len = x.shape[1]
-        attn_mask = self.attn_mask[:, :, :curr_len, :curr_len]
+        attn_mask = self.attn_mask[:, :, :curr_len, :curr_len].clone()
+
+        if pad_lengths is not None:
+            assert finetune_input, "Padding attention mask assumes special_masking was used (finetune_input=True)."
+            time_indices = torch.arange(T, device=states.device).unsqueeze(0)  
+            time_mask = time_indices >= pad_lengths.unsqueeze(1)               
+            token_mask = time_mask.unsqueeze(-1).expand(-1, -1, num_mods).reshape(batch_size, -1)
+            token_mask = token_mask[:, :curr_len]
+            padding_attn_mask = token_mask.unsqueeze(1).unsqueeze(2).float()
+            attn_mask = attn_mask * padding_attn_mask
 
         for blk in self.encoder_blocks:
             x = blk(x, attn_mask)
         x = self.encoder_norm(x)
-        
+
         # Return num_mods to dynamically inform the decoder
-        return x, mask, ids_restore, num_mods
+        return x, mask, ids_restore, num_mods, attn_mask
     
-    def forward_decoder(self, x, ids_restore, num_mods):
+    def forward_decoder(self, x, ids_restore, num_mods, pad_lengths: Optional[torch.Tensor] = None):
         # Append mask tokens
         mask_tokens = self.mask_token.repeat(
             x.shape[0], ids_restore.shape[1] - x.shape[1], 1
@@ -210,6 +220,14 @@ class MaskDPJointPE(nn.Module):
 
         curr_len = x.shape[1]
         attn_mask = self.attn_mask[:, :, :curr_len, :curr_len]
+        if pad_lengths is not None:
+
+            time_indices = torch.arange(T, device=x.device).unsqueeze(0)  
+            time_mask = time_indices >= pad_lengths.unsqueeze(1)               
+            token_mask = time_mask.unsqueeze(-1).expand(-1, -1, num_mods).reshape(x.shape[0], -1)
+            token_mask = token_mask[:, :curr_len]
+            padding_attn_mask = token_mask.unsqueeze(1).unsqueeze(2).float()
+            attn_mask = attn_mask * padding_attn_mask
 
         for blk in self.decoder_blocks:
             x = blk(x, attn_mask)
@@ -287,6 +305,7 @@ class JointDPAgent:
         use_tb,
         mask_ratio,
         transformer_cfg,
+        name,
     ):
         self.action_dim = action_shape[0]
         self.lr = lr
@@ -315,7 +334,7 @@ class JointDPAgent:
         metrics = dict()
         mask_ratio = np.random.choice(self.mask_ratio)
         
-        latent, mask, ids_restore, num_mods = self.model.forward_encoder(
+        latent, mask, ids_restore, num_mods, _ = self.model.forward_encoder(
             states, actions, rewards, mask_ratio
         )
         pred_s, pred_a, pred_r = self.model.forward_decoder(
@@ -355,7 +374,7 @@ class JointDPAgent:
         rewards_to_pass = reward if use_rewards else None
 
         mask_ratio = np.random.choice(self.mask_ratio)
-        latent, mask, ids_restore, num_mods = self.model.forward_encoder(
+        latent, mask, ids_restore, num_mods, _ = self.model.forward_encoder(
             obs, action, rewards_to_pass, mask_ratio
         )
         pred_s, pred_a, pred_r = self.model.forward_decoder(

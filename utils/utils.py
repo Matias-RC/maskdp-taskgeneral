@@ -335,6 +335,7 @@ class PBE(object):
         return reward
 
 
+
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     """
     embed_dim: output dimension for each position

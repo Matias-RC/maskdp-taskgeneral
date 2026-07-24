@@ -42,3 +42,4 @@ python behavioral_cloning.py \
     project=final_mt_mdp_bc \
     use_wandb=True \
     seed=1
+    

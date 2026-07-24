@@ -266,3 +266,25 @@ def eval_dataset(
     with logger.log_and_dump_ctx(global_step, ty="eval_dataset") as log:
         log("episode_length", step / episode)
         log("step", global_step)
+
+def eval_action_prediction_accuracy(
+    global_step,
+    agent,
+    env,
+    logger,
+    dataset_iter,
+    device,
+    num_eval_episodes,
+    video_recorder,
+    cfg
+):
+    step, episode = 0, 0
+    eval_until_episode = utils.Until(num_eval_episodes)
+
+    batch = next(dataset_iter)
+    loss = 0
+    while eval_until_episode(episode):
+        loss += agent.action_mse(batch)
+        episode += 1
+    mean_batch_loss = loss/num_eval_episodes
+    print(mean_batch_loss)

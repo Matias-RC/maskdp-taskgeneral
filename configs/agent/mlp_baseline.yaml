@@ -1,15 +1,14 @@
 # @package agent
-_target_: agents.maskdp.rewards_joint_PE.JointDPAgent
-name: JointDPAgent
-obs_shape: ??? 
-action_shape: ??? 
+_target_: agents.mlp.basic.MlpAgent
+obs_shape: ??? # to be specified later
+action_shape: ??? # to be specified later
 device: ${device}
 lr: 1e-4
 use_tb: ${use_tb}
-batch_size: 1024 
+batch_size: 1024 # 256 for pixels
 mask_ratio: [0.15, 0.35, 0.55, 0.75, 0.95]
 transformer_cfg:
-  n_embd: 128 
+  n_embd: 128 # n_embd % n_head must be 0
   n_head: 2
   n_enc_layer: 1
   n_dec_layer: 1

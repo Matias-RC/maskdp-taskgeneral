@@ -1,6 +1,6 @@
 # @package agent
-_target_: agents.maskdp.rewards_joint_PE.JointDPAgent
-name: JointDPAgent
+_target_: agents.policies.mdpActorCustomPPO.MDPWrapperPPO
+name: MDPWrapperPPO
 obs_shape: ??? 
 action_shape: ??? 
 device: ${device}
@@ -9,14 +9,18 @@ use_tb: ${use_tb}
 batch_size: 1024 
 mask_ratio: [0.15, 0.35, 0.55, 0.75, 0.95]
 transformer_cfg:
-  n_embd: 128 
+  n_embd: 128 #128 
   n_head: 2
   n_enc_layer: 1
   n_dec_layer: 1
   embd_pdrop: 0
   resid_pdrop: 0
   attn_pdrop: 0
-  traj_length: 128
+  traj_length: 64
   pe: 'fixed'
   loss: 'total'
   norm: 'l2'
+  zero_pad_prob: 0.2
+  initial_std: 0.15
+  clip_coef: 0.08
+  ent_coef: 0.3

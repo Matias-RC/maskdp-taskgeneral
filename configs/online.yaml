@@ -1,0 +1,29 @@
+defaults:
+  - env_cls_route: gym_async
+  - agent: mdpActorCustomPPO.yaml
+  - trainer: ppo_trainer
+
+
+# task settings
+task: walker_walk
+context: finetuining
+domain: walker_walk
+algorithm: ppo
+discount: 0.99
+
+num_workers: 32
+
+# misc
+seed: 1
+device: cuda
+save_video: true
+use_tb: false
+use_wandb: true
+project: mdp_ppo
+notes: "finetune_ppo"
+exp_name: output
+transparent_training: true
+resume_step: 0
+num_grad_steps: 301
+log_every_steps: 1
+snapshots: [0, 100, 200, 300]

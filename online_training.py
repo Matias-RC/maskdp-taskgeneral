@@ -10,6 +10,7 @@ os.environ["MUJOCO_GL"] = "disable"
 
 from pathlib import Path
 
+import time
 import hydra
 import torch
 import wandb
@@ -24,7 +25,7 @@ from utils.utils import set_seed_everywhere, Until, Every, Timer
 torch.backends.cudnn.benchmark = True
 
 #Online training
-@hydra.main(version_base=None, config_path="configs", config_name="online")
+@hydra.main(config_path="configs", config_name="online")
 def main(cfg: DictConfig):
     work_dir = Path.cwd()
     # Print the actual directory determined by hydra config
@@ -41,17 +42,21 @@ def main(cfg: DictConfig):
     )
 
     # Create environment for specified task
-    env = env_maker(cfg.task, seed=cfg.seed)
-
+    env = env_maker(cfg.task, cfg.num_workers, seed=cfg.seed)
+    agent = instantiate(
+        cfg.agent,
+        obs_shape=env.observation_space.shape,
+        action_shape=env.action_space.shape,
+    )
     trainer = instantiate(
         cfg.trainer, #Activates configs from "Algorithms" and consists of PPO / A2C type trainers
         env=env,
+        agent=agent,
         device=device
     )
-
     # In the case of using closed source code or more abstracted libraries not compatible with algorithm dismemberment
     # Not ideal for personalization
-    if cfg.trainer.transparent_training == False:
+    if cfg.transparent_training == False:
         trainer.train()
         print("Done!")
         return 0
@@ -62,8 +67,8 @@ def main(cfg: DictConfig):
     snapshot_dir.mkdir(exist_ok=True, parents=True)
 
     # Create logger
-    cfg.agent.obs_shape = env.observation_spec().shape
-    cfg.agent.action_shape = env.action_spec().shape
+    cfg.agent.obs_shape = env.observation_space.shape
+    cfg.agent.action_shape = env.action_space.shape
     exp_name = "_".join([
         cfg.agent.name, cfg.domain, str(cfg.seed), str(cfg.algorithm)
     ])
@@ -88,9 +93,8 @@ def main(cfg: DictConfig):
     global_step = cfg.resume_step
 
     train_until_step = Until(cfg.num_grad_steps)
-    eval_every_step = Every(cfg.eval_every_steps)
+    #eval_every_step = Every(cfg.eval_every_steps)
     log_every_step = Every(cfg.log_every_steps)
-
     # True until global_step gets to cfg.num_grad_steps
     while train_until_step(global_step):
         # try to evaluate
@@ -113,6 +117,7 @@ def main(cfg: DictConfig):
             snapshot = snapshot_dir / f"snapshot_{global_step}.pt"
             payload = {
                 "model": trainer.agent.model.state_dict(),
+                "value_head": trainer.agent.value_head.state_dict(),
                 "cfg": cfg.agent.transformer_cfg,
             }
             with snapshot.open("wb") as f:

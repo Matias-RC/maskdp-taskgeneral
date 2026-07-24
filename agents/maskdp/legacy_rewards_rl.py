@@ -82,13 +82,3 @@ class CriticR(nn.Module):
         value = self.value_head(current_state) # (B, 1)
         return value
 
-
-# self.model.pos_embed.shape = (1, 192, 256)
-#      = (batch_size, 3*traj_length, n_embd)
-
-# self.model.timestep_embed.shape = (1, 192, 256)
-#      = (batch_size, 3*traj_length, n_embd)
-# This is a 3x repeat of a traj_length timestep embedding
-
-# self.model.modality_embed.weight[0].shape = (256,)
-#      = (n_embd)

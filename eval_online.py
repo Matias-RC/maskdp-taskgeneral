@@ -23,7 +23,7 @@ from utils.utils import set_seed_everywhere, Until, Every, Timer
 
 torch.backends.cudnn.benchmark = True
 
-@hydra.main(version_base=None, config_path="configs", config_name="eval_online")
+@hydra.main(config_path="configs", config_name="eval_online")
 def main(cfg: DictConfig):
     work_dir = Path.cwd()
     # Print the actual directory determined by hydra config
@@ -33,35 +33,70 @@ def main(cfg: DictConfig):
     set_seed_everywhere(cfg.seed)
     device = torch.device(cfg.device)
     print(f"Using device: {device}")
-    
+
     # Since we may work with dmc, mtm_dmc or future environment standards
-    env_cls = instantiate(
+    env_maker = instantiate(
         cfg.env_cls_route
     )
 
     # Create environment for specified task
-    env = env_cls.make(cfg.task, seed=cfg.seed)
-    # Create agent. 
+    env = env_maker(cfg.task, cfg.num_workers, seed=cfg.seed)
     agent = instantiate(
         cfg.agent,
-        obs_shape=env.observation_spec().shape,
-        action_shape=env.action_spec().shape,
+        obs_shape=env.observation_space.shape,
+        action_shape=env.action_space.shape,
     )
-    """
-    TODO:
-    logger = instantiate(cfg.eval_logger)
-    total_reward = 0
-    rewards = []
-    for i in range(cfg.eval_steps):
-        action = agent.act(env.state)
-        reward, _, _, _ = env.step(action)
-        total_reward += reward
-        rewards.append(reward)
-    std = utils.get_std(rewards)
-    logger.log(total_reward/cfg.eval_steps, std)
-    """
-    
+    evaluator = instantiate(
+        cfg.trainer, #Activates configs from "Algorithms" and consists of an eval from partial PPO rollout
+        env=env,
+        agent=agent,
+        device=device
+    )
 
+    # Create logger
+    cfg.agent.obs_shape = env.observation_space.shape
+    cfg.agent.action_shape = env.action_space.shape
+    exp_name = "_".join([
+        cfg.agent.name, cfg.domain, str(cfg.seed), str(cfg.algorithm)
+    ])
+    # Create wandb_config from Hydra's omegaconf
+    wandb_config = omegaconf.OmegaConf.to_container(
+        cfg, resolve=True, throw_on_missing=True
+    )
+    wandb.init(
+        project=cfg.project,
+        # This has to be your WandB user-institution
+        entity=None, 
+        name=exp_name,
+        config=wandb_config,
+        settings=wandb.Settings(_disable_stats=True,),
+        mode="online" if cfg.use_wandb else "offline",
+        notes=cfg.notes,
+    )
+    logger = Logger(work_dir, use_tb=cfg.use_tb, use_wandb=cfg.use_wandb)
 
+    timer = Timer()
+
+    global_step = cfg.resume_step
+
+    train_until_step = Until(cfg.num_grad_steps)
+    #eval_every_step = Every(cfg.eval_every_steps)
+    log_every_step = Every(cfg.log_every_steps)
+    # True until global_step gets to cfg.num_grad_steps
+    while train_until_step(global_step):
+        avg_rew = evaluator.roll(global_step)
+        metrics = {"avg_rew":avg_rew}
+        # Log each metric using the "Train meter group" on the logger
+        logger.log_metrics(metrics, global_step, ty="train")
+        # Log just registers the metrics on a MetersGroup instance
+        # inside the logger
+        if log_every_step(global_step):
+            elapsed_time, total_time = timer.reset()
+            with logger.log_and_dump_ctx(global_step, ty="train") as log:
+                log("fps", cfg.settings.log_every_steps / elapsed_time)
+                log("total_time", total_time)
+                log("step", global_step)
+            # Upon exiting the context manager "LogAndDumpCtx", the logged
+            # data is actually dumped to WandB
 if __name__ == "__main__":
     main()

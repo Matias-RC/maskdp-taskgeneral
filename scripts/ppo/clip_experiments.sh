@@ -24,7 +24,7 @@ pwd
 echo "Beginning mdp clip_coef sweep across 4 GPUs"
 
 # Define clip_coef hyperparameter values
-CLIP_COEFS=(0.08 0.12 0.16 0.2)
+CLIP_COEFS=(0.12 0.16)
 
 # Track background job PIDs
 PIDS=()
@@ -39,12 +39,12 @@ for clip_coef in "${CLIP_COEFS[@]}"; do
     
     # Assign run to a distinct GPU (0, 1, 2, 3) and set clip_coef
     CUDA_VISIBLE_DEVICES=${GPU_ID} python online_training.py \
-        ++env_cls_route.truncation_limit=512 \
+        ++env_cls_route.action_repeat=4 \
         ++agent.transformer_cfg.clip_coef=${clip_coef} \
         ++agent.name="${RUN_NAME}" \
         exp_name="${RUN_NAME}" \
         project=mdp_ppo_new_gae \
-        num_grad_steps=1000 \
+        num_grad_steps=500 \
         notes="sweep_clip_coef_${clip_coef}" &
         
     PIDS+=($!)

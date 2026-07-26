@@ -1,6 +1,6 @@
 # envs/custom_dmc/__init__.py
 
-from . import (
+from custom_dmc_tasks import (
     cheetah,
     hopper,
     jaco,

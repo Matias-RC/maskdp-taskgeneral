@@ -5,9 +5,9 @@ defaults:
 
 
 # task settings
-task: walker_walk
+task: walker_walk_easy
 context: finetuining
-domain: walker_walk
+domain: walker_walk_easy
 algorithm: ppo
 discount: 0.99
 

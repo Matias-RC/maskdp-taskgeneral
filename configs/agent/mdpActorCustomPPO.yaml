@@ -16,11 +16,11 @@ transformer_cfg:
   embd_pdrop: 0
   resid_pdrop: 0
   attn_pdrop: 0
-  traj_length: 128
+  traj_length: 64
   pe: 'fixed'
   loss: 'total'
   norm: 'l2'
   zero_pad_prob: 0.2
-  initial_std: 0.15
+  initial_std: 1
   clip_coef: 0.08
-  ent_coef: 0.3
+  ent_coef: 0.001

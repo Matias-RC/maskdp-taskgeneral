@@ -15,7 +15,7 @@ import hydra
 import torch
 # from dm_env import specs
 
-from envs import custom_dmc
+import custom_dmc_tasks
 import utils
 from utils.logger import Logger
 from data.replay_buffer import make_replay_loader
@@ -56,7 +56,7 @@ def main(cfg):
     print(f"Using device: {device}")
 
     # Create DeepMindControl environment for specified task
-    env = custom_dmc.make(cfg.task, seed=cfg.seed)
+    env = custom_dmc_tasks.make(cfg.task, seed=cfg.seed)
 
     # Create agent. Utils will instantiate a class
     # Since cfg.agent is 'mdp'. The class will be specified by the mdp.yaml

@@ -96,6 +96,38 @@ def multitask(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=No
         **environment_kwargs
     )
 
+# ================================================
+# Made by: Matias-RC
+
+@SUITE.add("benchmarking")
+def stand_easy(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    physics = Physics.from_xml_string(*get_model_and_assets())
+    task = EasyInitPlanarWalker(move_speed=0, flip=False, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP, **environment_kwargs
+    )
+
+
+@SUITE.add("benchmarking")
+def walk_easy(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    physics = Physics.from_xml_string(*get_model_and_assets())
+    task = EasyInitPlanarWalker(move_speed=_WALK_SPEED, flip=False, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP, **environment_kwargs
+    )
+
+
+@SUITE.add("benchmarking")
+def run_easy(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    physics = Physics.from_xml_string(*get_model_and_assets())
+    task = EasyInitPlanarWalker(move_speed=_RUN_SPEED, flip=False, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP, **environment_kwargs
+    )
+# ================================================
 
 class Physics(mujoco.Physics):
     """Physics simulation with additional features for the Walker domain."""
@@ -189,6 +221,21 @@ class PlanarWalker(base.Task):
 
         return stand_reward * (5 * move_reward + 1) / 6
 
+# Made by: Matias-RC
+class EasyInitPlanarWalker(PlanarWalker):
+    """Planar walker initializing in an upright pose with small noise."""
+
+    def __init__(self, move_speed=0, flip=False, noise_std=0.05, random=None):
+        self._noise_std = noise_std
+        super().__init__(move_speed=move_speed, flip=flip, random=random)
+
+    def initialize_episode(self, physics):
+        with physics.reset_context():
+            noise = self.random.normal(scale=self._noise_std, size=physics.data.qpos.shape)
+            physics.data.qpos[:] += noise
+            physics.data.qvel[:] = 0.0
+
+        base.Task.initialize_episode(self, physics)
 
 class MultiTaskPlanarWalker(base.Task):
     """A planar walker task."""

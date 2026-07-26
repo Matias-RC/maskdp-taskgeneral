@@ -77,8 +77,9 @@ class DPM_EnvWrapper(gym.Env):
 
 
 class AsyncFactory:
-    def __init__(self, truncation_limit=1000):
+    def __init__(self, truncation_limit=1000, action_repeat=1):
         self.truncation_limit = truncation_limit
+        self.action_repeat = action_repeat
     def make(self, idx):
         env = Factory()(
             name=self.name, 
@@ -91,7 +92,7 @@ class AsyncFactory:
         self.name = name
         self.obs_type = obs_type
         self.frame_stack = frame_stack
-        self.action_repeat = action_repeat
+        #self.action_repeat = action_repeat
         self.seed = seed
         return gym.vector.AsyncVectorEnv([lambda i=j: self.make(i) for j in range(num_workers)])
 

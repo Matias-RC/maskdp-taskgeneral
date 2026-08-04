@@ -1,3 +1,4 @@
+# Masked Desicion process Research
 ## File Descriptions
 
 `conda_env.yml`: Conda YAML specifying Python & package dependencies. Used to create the "maskdp" conda environment.
@@ -16,3 +17,18 @@ conda activate maskdp
 - `mdp`: Masked DP agent 
 
 `custom_dmc_tasks/`: Contains custom DM Control tasks. 
+
+## Design Choices
+
+To resolve the scalability and readability challenges, this repository draws from the classic book *Design Patterns: Elements of Reusable Object-Oriented Software*.
+
+Every architectural module contains its own `README.md`. These files map the local scripts to the classic design pattern catalog (Creational, Structural, Behavioral) or their modern ML variants.
+
+**Example Structure:**
+```
+├── data/
+    ├── __init__.py
+    ├── README.md              # ← Explains data patterns used here
+    ├── replay_buffer.py       # Behavioral: Sequence Rollout Buffer Iterator
+    └── loaders.py             # Creational: Streaming Data Iterator
+```

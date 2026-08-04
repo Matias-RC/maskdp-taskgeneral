@@ -1,10 +1,13 @@
-from custom_dmc_tasks import cheetah
-from custom_dmc_tasks import walker
-from custom_dmc_tasks import hopper
-from custom_dmc_tasks import quadruped
-from custom_dmc_tasks import jaco
-from custom_dmc_tasks import point_mass_maze
+# envs/custom_dmc/__init__.py
 
+from custom_dmc_tasks import (
+    cheetah,
+    hopper,
+    jaco,
+    point_mass_maze,
+    quadruped,
+    walker,
+)
 
 def make(
     domain, task, task_kwargs=None, environment_kwargs=None, visualize_reward=False

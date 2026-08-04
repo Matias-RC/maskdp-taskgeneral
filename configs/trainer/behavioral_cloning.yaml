@@ -1,0 +1,47 @@
+defaults:
+  - agent: mdp 
+  - override hydra/launcher: submitit_local
+
+task: walker_walk
+discount: 0.99
+
+num_grad_steps: 100000
+log_every_steps: 1000
+lr: 1e-4
+
+eval_every_steps: 10000
+num_eval_episodes: 10
+
+# Snapshot settings
+snapshots: [0, 25000, 50000, 75000, 100000]
+snapshot_dir: snapshots_bc 
+pretrained_path: /home/matias_rodriguez/maskdp-taskgeneral/snapshot/walker/2/snapshot_0.pt
+
+# Resume settings
+resume: false
+resume_dir: none
+resume_step: 0
+
+# Data settings (Expert Data)
+replay_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/maskdp_data/maskdp_train
+replay_buffer_size: 100000000
+replay_buffer_num_workers: 16
+batch_size: 256
+
+# Misc
+seed: 1
+device: cuda
+save_video: true
+use_tb: false
+use_wandb: true
+project: final_mt_mdp_bc
+notes: "behavioral cloning on expert walker_walk"
+exp_name: bc_output
+
+agent:
+  PE_type: ???
+
+# Hydra working directory setup
+hydra:
+  run:
+    dir: "/home/matias_rodriguez/maskdp-taskgeneral/maskdp_models/${exp_name}/${now:%Y.%m.%d}/${now:%H%M%S}_bc"

@@ -21,6 +21,8 @@ from omegaconf import DictConfig, OmegaConf
 from data.replay_buffer import make_replay_loader
 from utils.utils import set_seed_everywhere, Until, Every, Timer
 
+####
+from utils import video
 torch.backends.cudnn.benchmark = True
 
 @hydra.main(config_path="configs", config_name="eval_online")
@@ -77,6 +79,9 @@ def main(cfg: DictConfig):
 
     timer = Timer()
 
+    ######
+    video_recorder = video.VideoRecorder(root_dir=work_dir, fps=20, render_size=256)
+
     global_step = cfg.resume_step
 
     train_until_step = Until(cfg.num_grad_steps)
@@ -84,7 +89,17 @@ def main(cfg: DictConfig):
     log_every_step = Every(cfg.log_every_steps)
     # True until global_step gets to cfg.num_grad_steps
     while train_until_step(global_step):
-        avg_rew = evaluator.roll(global_step)
+        ####
+        recorder_to_pass = video_recorder if cfg.save_video else None
+
+        avg_rew = evaluator.roll(global_step, video_recorder=recorder_to_pass)
+
+        ####
+        if cfg.save_video:
+            video_name = f"eval_step_{global_step}.mp4"
+            video_recorder.save(video_name)
+            print(f"¡Video guardado con éxito!: {video_name}")
+
         metrics = {"avg_rew":avg_rew}
         # Log each metric using the "Train meter group" on the logger
         logger.log_metrics(metrics, global_step, ty="train")

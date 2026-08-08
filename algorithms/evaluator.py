@@ -43,19 +43,38 @@ class OnlineEvaluator:
         info["obs2"] = obs
         return actual_obs, reward, dones | truncated, info
 
-    def roll(self, global_step):
+    def roll(self, global_step, video_recorder=None):
         obs = self.env.reset()
         obs = th.from_numpy(obs[0]).to(self.device)
         self.rb.reset()
         for i in range(self.num_workers):
             self.rb.set_initial_obs(obs[i], i)
         dist, Vf = self.agent.act(*self.rb.fetch())
+        
+        ####
+        if video_recorder is not None:
+            video_recorder.init(self.env.envs[0], enabled=True) #entorno del worker 0
+            step_count = 0
+
         while not self.rb.full:
             self.rb.step()
             a = dist.sample()
             log_prob = dist.log_prob(a).sum(dim=-1)
             obs, reward, terminated, truncated, info = self.env.step(a.detach().cpu().numpy())
             obs, reward, dones, info = self.fix_input(obs, reward, terminated, truncated, info)
+            
+            ####
+            if video_recorder is not None:
+                metadata = {
+                    "step": step_count, 
+                    "rew": round(float(reward[0]), 2)  # Recompensa del worker 0
+                }
+                video_recorder.record(self.env.envs[0], metadata=metadata)
+                step_count += 1
+                
+                if dones[0]:
+                    video_recorder.enabled = False
+
             self.rb.append(a, Vf, log_prob, obs, reward, info)
             dist, Vf = self.agent.act(*self.rb.fetch())
             for i in range(self.num_workers):
@@ -64,4 +83,5 @@ class OnlineEvaluator:
                 self.rb.add(i, Vf[i])
                 new_obs = th.from_numpy(info["obs2"][i]).to(self.device)
                 self.rb.set_initial_obs(new_obs, i)
+                
         return self.rb.get_avg_reward_trace()

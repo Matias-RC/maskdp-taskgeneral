@@ -17,12 +17,11 @@ import omegaconf
 from pprint import pprint
 from utils.logger import Logger
 from hydra.utils import instantiate
+from utils.video import VideoRecorder
 from omegaconf import DictConfig, OmegaConf
 from data.replay_buffer import make_replay_loader
 from utils.utils import set_seed_everywhere, Until, Every, Timer
 
-####
-from utils import video
 torch.backends.cudnn.benchmark = True
 
 @hydra.main(config_path="configs", config_name="eval_online")
@@ -80,7 +79,7 @@ def main(cfg: DictConfig):
     timer = Timer()
 
     ######
-    video_recorder = video.VideoRecorder(root_dir=work_dir, fps=20, render_size=256)
+    video_recorder = VideoRecorder(root_dir=work_dir, fps=20, render_size=256)
 
     global_step = cfg.resume_step
 
@@ -98,7 +97,9 @@ def main(cfg: DictConfig):
         if cfg.save_video:
             video_name = f"eval_step_{global_step}.mp4"
             video_recorder.save(video_name)
-            print(f"¡Video guardado con éxito!: {video_name}")
+            # In the case code is read by colleagues of other nationalities use english for messages
+            print(f"Video recorded succesfully: {video_name}") 
+            
 
         metrics = {"avg_rew":avg_rew}
         # Log each metric using the "Train meter group" on the logger

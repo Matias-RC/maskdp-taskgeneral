@@ -22,8 +22,11 @@ source "/home/matias_rodriguez/miniconda3/etc/profile.d/conda.sh"
 conda activate maskdp-ppo
 
 pwd
-echo "Beginning standard mdp"
+echo "Beginning eval mdp"
 
 
 python eval_online.py \
-    num_grad_steps=10
+    num_grad_steps=2 \
+    save_video=true \
+    
+

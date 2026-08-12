@@ -15,7 +15,6 @@ class VideoRecorder:
             self.save_dir.mkdir(exist_ok=True, parents=True) 
         else:
             self.save_dir = None
-
         self.render_size = render_size
         self.fps = fps
         self.frames = []

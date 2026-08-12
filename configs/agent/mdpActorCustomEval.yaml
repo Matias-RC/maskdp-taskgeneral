@@ -25,4 +25,4 @@ transformer_cfg:
   initial_std: 0.04
   clip_coef: 0.08
   ent_coef: 0.3
-  weights_path: '/home/matias_rodriguez/maskdp-taskgeneral/snapshots/unsup_snap_200000_1.pt'
+  weights_path: '/home/matias_rodriguez/maskdp-taskgeneral/snapshots/ppo_snap_200.pt'

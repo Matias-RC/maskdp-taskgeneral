@@ -6,7 +6,7 @@ import os
 
 os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 # https://gymnasium.farama.org/environments/mujoco/
-os.environ["MUJOCO_GL"] = "disable" # egl doesn't work on Peteroa :(
+os.environ["MUJOCO_GL"] = "egl" # egl doesn't work on Peteroa :(
 
 from pathlib import Path
 
@@ -80,7 +80,6 @@ def main(cfg: DictConfig):
 
     ######
     video_recorder = VideoRecorder(root_dir=work_dir, fps=20, render_size=256)
-
     global_step = cfg.resume_step
 
     train_until_step = Until(cfg.num_grad_steps)
@@ -114,5 +113,6 @@ def main(cfg: DictConfig):
                 log("step", global_step)
             # Upon exiting the context manager "LogAndDumpCtx", the logged
             # data is actually dumped to WandB
+        global_step += 1
 if __name__ == "__main__":
     main()

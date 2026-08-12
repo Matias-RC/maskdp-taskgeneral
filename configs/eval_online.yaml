@@ -1,5 +1,5 @@
 defaults:
-  - env_cls_route: gym_async
+  - env_cls_route: gym_sync
   - agent: mdpActorCustomEval
   - trainer: evaluator
 

@@ -49,6 +49,15 @@ class DPM_EnvWrapper(gym.Env):
         self._max_episode_steps = truncation_limit if truncation_limit < dmc_env._step_limit/dmc_env._num_repeats else dmc_env._step_limit/dmc_env._num_repeats
         self.counter = 0
 
+    def get_inner_env(self):
+        return self._env
+    
+    def get_env_attr(self):
+        return getattr(self._env, name)
+
+    def get_wrapper_attr(self, name):
+        return getattr(self, name)
+
     def reset(self):
         ts = self._env.reset() # TimeStep
 
@@ -97,3 +106,40 @@ class AsyncFactory:
         return gym.vector.AsyncVectorEnv([lambda i=j: self.make(i) for j in range(num_workers)])
 
 
+class SyncFactory:
+    def __init__(self, truncation_limit=1000, action_repeat=1):
+        self.truncation_limit = truncation_limit
+        self.action_repeat = action_repeat
+
+    def make(self, idx):
+        env = Factory()(
+            name=self.name,
+            obs_type=self.obs_type,
+            frame_stack=self.frame_stack,
+            action_repeat=self.action_repeat,
+            seed=self.seed + 10 * idx,
+        )
+
+        return DPM_EnvWrapper(
+            env,
+            truncation_limit=self.truncation_limit
+        )
+
+    def __call__(
+        self,
+        name,
+        num_workers,
+        obs_type="states",
+        frame_stack=1,
+        action_repeat=1,
+        seed=1,
+    ):
+        self.name = name
+        self.obs_type = obs_type
+        self.frame_stack = frame_stack
+        self.action_repeat = action_repeat
+        self.seed = seed
+
+        return gym.vector.SyncVectorEnv(
+            [lambda i=j: self.make(i) for j in range(num_workers)]
+        )

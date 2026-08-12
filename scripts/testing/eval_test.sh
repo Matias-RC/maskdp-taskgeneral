@@ -3,13 +3,13 @@
 #SBATCH --output=logs/%x/%j.out          # Log file (%x=job-name, %j=job-ID)
 #SBATCH --error=logs/%x/%j.err           # Error log                    
 #SBATCH --gres=gpu:1                     # Number of GPUs
-#SBATCH --cpus-per-task=8             # CPU cores
-#SBATCH --nodelist=scylla
+#SBATCH --cpus-per-task=4             # CPU cores
+#SBATCH --nodelist=ventress
 #SBATCH --partition=ialab
 #SBATCH --account=defaultacc             
 #SBATCH --qos=normal 
 #SBATCH --time=24:00:00
-#SBATCH --mem=10G
+#SBATCH --mem=7G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 
@@ -26,6 +26,7 @@ echo "Beginning eval mdp"
 
 
 python eval_online.py \
+    ++env_cls_route.action_repeat=4 \
     num_grad_steps=2 \
     save_video=true \
     

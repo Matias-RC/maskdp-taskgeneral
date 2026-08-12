@@ -53,7 +53,7 @@ class OnlineEvaluator:
         
         ####
         if video_recorder is not None:
-            video_recorder.init(self.env.envs[0], enabled=True) #entorno del worker 0
+            video_recorder.init(self.env.envs[0]._env, enabled=True) #entorno del worker 0
             step_count = 0
 
         while not self.rb.full:
@@ -69,7 +69,7 @@ class OnlineEvaluator:
                     "step": step_count, 
                     "rew": round(float(reward[0]), 2)  # Recompensa del worker 0
                 }
-                video_recorder.record(self.env.envs[0], metadata=metadata)
+                video_recorder.record(self.env.envs[0]._env, metadata=metadata)
                 step_count += 1
                 
                 if dones[0]:
@@ -83,5 +83,5 @@ class OnlineEvaluator:
                 self.rb.add(i, Vf[i])
                 new_obs = th.from_numpy(info["obs2"][i]).to(self.device)
                 self.rb.set_initial_obs(new_obs, i)
-                
+        video_recorder.enabled = True
         return self.rb.get_avg_reward_trace()

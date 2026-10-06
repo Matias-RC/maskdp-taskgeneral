@@ -3,48 +3,124 @@ import torch.nn as nn
 import torch as th
 import math
 
+class ModelPlaceHolder:
+    def __init__(self, traj_length=1):
+        self.traj_length = traj_length
+
+
 class MLPValueHead(nn.Module):
-    """
-    A standalone Critic (Value) network using an MLP. 
-    Maintains the .optimizer attribute to match the original architecture's API.
-    """
-    def __init__(self, obs_dim, lr, hidden_dim=256):
+    def __init__(
+        self,
+        obs_dim,
+        lr,
+        hidden_dim=256,
+        hidden_layers=2,
+    ):
         super().__init__()
-        self.net = nn.Sequential(
+
+        if hidden_layers < 1:
+            raise ValueError("hidden_layers must be >= 1")
+
+        layers = []
+
+        layers.extend([
             nn.Linear(obs_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, 1)
+        ])
+
+        for _ in range(hidden_layers - 1):
+            layers.extend([
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.LayerNorm(hidden_dim),
+                nn.ReLU(inplace=True),
+            ])
+
+        layers.append(nn.Linear(hidden_dim, 1))
+
+        self.net = nn.Sequential(*layers)
+
+        # Orthogonal initialization
+        self.apply(self._init_weights)
+
+        self.optimizer = th.optim.Adam(
+            self.parameters(),
+            lr=lr
         )
-        # Keep the optimizer embedded to match previous ExtraDecoderForValueHead interface
-        self.optimizer = th.optim.Adam(self.parameters(), lr=lr)
-        
+
+    @staticmethod
+    def _init_weights(module):
+        if isinstance(module, nn.Linear):
+            # Use sqrt(2) for layers followed by ReLU,
+            # and 1.0 for the final output layer.
+            if module.out_features == 1:
+                nn.init.orthogonal_(module.weight, gain=1.0)
+            else:
+                nn.init.orthogonal_(module.weight, gain=math.sqrt(2.0))
+
+            nn.init.zeros_(module.bias)
+
+        elif isinstance(module, nn.LayerNorm):
+            nn.init.ones_(module.weight)
+            nn.init.zeros_(module.bias)
+
     def forward(self, x):
         return self.net(x)
 
 
 class MLPActor(nn.Module):
-    """
-    A standalone Actor network using an MLP.
-    """
-    def __init__(self, obs_dim, action_dim, hidden_dim=256):
+    def __init__(
+        self,
+        obs_dim,
+        action_dim,
+        hidden_dim=256,
+        hidden_layers=2,
+    ):
         super().__init__()
-        self.net = nn.Sequential(
+
+        if hidden_layers < 1:
+            raise ValueError("hidden_layers must be >= 1")
+
+        layers = []
+
+        layers.extend([
             nn.Linear(obs_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, action_dim)
-        )
-        
+        ])
+
+        for _ in range(hidden_layers - 1):
+            layers.extend([
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.LayerNorm(hidden_dim),
+                nn.ReLU(inplace=True),
+            ])
+
+        layers.append(nn.Linear(hidden_dim, action_dim))
+
+        self.net = nn.Sequential(*layers)
+
+        # Orthogonal initialization
+        self.apply(self._init_weights)
+
+    @staticmethod
+    def _init_weights(module):
+        if isinstance(module, nn.Linear):
+            # Final actor output gets gain 1.0;
+            # hidden ReLU layers get sqrt(2).
+            if module.out_features == action_dim:
+                nn.init.orthogonal_(module.weight, gain=1.0)
+            else:
+                nn.init.orthogonal_(module.weight, gain=math.sqrt(2.0))
+
+            nn.init.zeros_(module.bias)
+
+        elif isinstance(module, nn.LayerNorm):
+            nn.init.ones_(module.weight)
+            nn.init.zeros_(module.bias)
+
     def forward(self, x):
         return self.net(x)
-
 
 class MlpWrapperPPO(nn.Module):
     """
@@ -67,6 +143,8 @@ class MlpWrapperPPO(nn.Module):
         std_lr=1e-2,
     ):
         super().__init__()
+        self.model = ModelPlaceHolder()
+        self.name = name
         
         # Save standard configurations needed for PPO updates
         self.device = device

@@ -1,0 +1,22 @@
+_target_: algorithms.baselinegymTrainer.PPOTrainer
+
+gamma: 0.98
+lambd: 0.98
+clip_range: ${clip_range}
+epochs: ${epochs}
+rb_size: ${rb_size}                # total transitions per iteration
+mini_batch_size: ${mini_batch_size}
+rollout_steps: null                # set to override rb_size // num_workers
+
+entropy_coef: 0.0                  # 0.0 = baseline; 0.001-0.01 helps exploration
+max_grad_norm: 0.5                 # null to disable
+target_kl: null                    # e.g. 0.02 for early stopping
+
+normalize_obs: true
+clip_obs: 5.0
+normalize_advantage: true
+clip_value_loss: false
+
+n_iter: ${num_grad_steps}
+log_every: 10
+save_every: 50

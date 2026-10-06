@@ -1,0 +1,9 @@
+_target_: algorithms.baselinePPOTrainer.TrainConstructor
+
+cfg:
+  task: walker_walk_easy
+  num_grad_steps: 500
+  epochs: 10
+  mini_batch_size: 64
+  epsilon: 0.2
+  rb_size: 2048

@@ -23,4 +23,4 @@ transformer_cfg:
   zero_pad_prob: 0.2
   initial_std: 1
   clip_coef: 0.08
-  ent_coef: 0.001
+  ent_coef: 0.01

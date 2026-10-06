@@ -1,6 +1,6 @@
 defaults:
   - env_cls_route: gym_async
-  - agent: mdpActorCustomPPO.yaml
+  - agent: mdpActorCustomPPO
   - trainer: ppo_trainer
 
 
@@ -9,9 +9,9 @@ task: walker_walk_easy
 context: finetuining
 domain: walker_walk_easy
 algorithm: ppo
-discount: 0.99
+discount: 0.85
 
-num_workers: 32
+num_workers: 64
 
 # misc
 seed: 1
@@ -25,5 +25,9 @@ exp_name: output
 transparent_training: true
 resume_step: 0
 num_grad_steps: 301
+epochs: 10
+clip_range: 0.2
+rb_size: 2048
+mini_batch_size: 64
 log_every_steps: 1
 snapshots: [0, 100, 200, 300]

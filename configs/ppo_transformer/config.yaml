@@ -1,0 +1,10 @@
+defaults:
+  - settings: walker2d
+
+use_wandb: true
+notes: "ppo_training_transformer"
+
+
+hydra:
+  run:
+    dir: "/home/matias_rodriguez/maskdp-taskgeneral/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}"

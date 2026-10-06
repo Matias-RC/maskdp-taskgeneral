@@ -6,7 +6,7 @@ action_shape: ???
 device: ${device}
 lr: 1e-4
 use_tb: ${use_tb}
-batch_size: 1024 
+batch_size: 1024
 mask_ratio: [0.15, 0.35, 0.55, 0.75, 0.95]
 transformer_cfg:
   n_embd: 128 #128 
@@ -21,5 +21,5 @@ transformer_cfg:
   loss: 'total'
   norm: 'l2'
   zero_pad_prob: 0.2
-  initial_std: 0.15
+  initial_std: 1.5
   clip_coef: 0.08

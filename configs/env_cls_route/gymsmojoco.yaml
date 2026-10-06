@@ -1,0 +1,8 @@
+# instantiate(cfg.env_cls_route) -> GymAsyncEnvMaker (a callable factory).
+# Using a class with __call__ instead of _partial_ keeps this working on
+# Hydra 1.0.x, which has no _partial_ support.
+_target_: envs.mujoco_gym.GymAsyncEnvMaker
+max_episode_steps: null      # null -> gym default for the task (1000 for MuJoCo v4)
+asynchronous: true           # false -> SyncVectorEnv, easier to debug
+clip_actions: true
+render_mode: rgb_array       # only used when num_workers == 1

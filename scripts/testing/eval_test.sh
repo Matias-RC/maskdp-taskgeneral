@@ -4,7 +4,7 @@
 #SBATCH --error=logs/%x/%j.err           # Error log                    
 #SBATCH --gres=gpu:1                     # Number of GPUs
 #SBATCH --cpus-per-task=4             # CPU cores
-#SBATCH --nodelist=ventress
+#SBATCH --nodelist=yodaxico
 #SBATCH --partition=ialab
 #SBATCH --account=defaultacc             
 #SBATCH --qos=normal 

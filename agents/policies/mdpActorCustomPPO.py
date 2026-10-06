@@ -6,6 +6,7 @@ import torch as th
 import random
 import math
 
+
 class ExtraDecoderForValueHead(nn.Module):
     def __init__(self, model: MaskDPJointPE, config, lr):
         super().__init__()

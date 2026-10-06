@@ -1,0 +1,36 @@
+# @package _global_
+
+project: 'ppo-mujoco'
+device: cuda
+algorithm: ppo
+
+env_name: HalfCheetah-v4
+num_envs: 8
+seed: 1
+gamma: 0.99
+
+trainer_cfg:
+  env_name: ${env_name}
+  num_envs: ${num_envs}
+  seed: ${seed}
+  gamma: ${gamma}
+  use_wandb: ${use_wandb}
+
+  total_steps: 1000000
+  rollout_steps: 256
+  save_interval: 100000
+  save_path: 'snapshots/halfcheetah/ppo/model.pt'
+
+  policy_lr: 0.0003
+  value_lr: 0.0003
+  anneal_lr: true
+  optim: adam
+  optim_eps: 0.00001
+
+  minibatch_size: 64
+  update_epochs: 10
+  clip_eps: 0.2
+  gae_lambda: 0.95
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5

@@ -1,0 +1,24 @@
+_target_: agents.baseline.actorcriticbaselineGYM.MDPActorCustomPPO
+name: mdpActorCustomPPO
+
+# obs_shape / action_shape are passed explicitly by the training script; they
+# are declared here (as null, not ???) because online_training_script.py
+# assigns cfg.agent.obs_shape before building the wandb config.
+obs_shape: null
+action_shape: null
+
+hidden_dim: 64
+lr_actor: 0.0003
+lr_critic: 0.0003
+l2_rate: 0.001
+anneal_lr: true
+
+# false -> single learned log_std vector (steadier, recommended)
+# true  -> baseline behaviour: log_std predicted from the state
+state_dependent_std: false
+log_std_init: 0.0
+log_std_min: -5.0
+log_std_max: 2.0
+
+weights_dir: null            # null -> <run_dir>/weights/<task>
+weights_file: ppo_latest.pt

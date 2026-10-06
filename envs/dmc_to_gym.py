@@ -2,6 +2,8 @@ from collections import deque
 import gym
 import numpy as np
 from dm_env import StepType, specs
+from envs.dmc import Factory
+
 
 class DMCGymWrapper(gym.Env):
     """

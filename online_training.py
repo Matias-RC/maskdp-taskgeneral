@@ -43,10 +43,14 @@ def main(cfg: DictConfig):
 
     # Create environment for specified task
     env = env_maker(cfg.task, cfg.num_workers, seed=cfg.seed)
+
     agent = instantiate(
         cfg.agent,
-        obs_shape=env.observation_space.shape,
-        action_shape=env.action_space.shape,
+        obs_shape=env.observation_space.shape[0],
+        action_shape=env.action_space.shape[0],
+        env_name=cfg.task,
+        n_iter=cfg.num_grad_steps,
+        device=device
     )
     trainer = instantiate(
         cfg.trainer, #Activates configs from "Algorithms" and consists of PPO / A2C type trainers
@@ -56,7 +60,12 @@ def main(cfg: DictConfig):
     )
     # In the case of using closed source code or more abstracted libraries not compatible with algorithm dismemberment
     # Not ideal for personalization
+    
     if cfg.transparent_training == False:
+        try:
+            agent.load_weights()
+        except:
+            print("could not load weigths")
         trainer.train()
         print("Done!")
         return 0

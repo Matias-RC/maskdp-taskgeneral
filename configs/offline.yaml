@@ -5,7 +5,9 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Replay buffer dir
-replay_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/datasets/walker_walk_expert
+#replay_buffer_dir: /home/matias_rodriguez/maskdp-taskgeneral/datasets/walker_walk_expert
+replay_buffer_dir: /home/matias_rodriguez/scratch/maskdp-taskgeneral/datasets/walker/proto
+
 # misc
 seed: 1
 device: cuda

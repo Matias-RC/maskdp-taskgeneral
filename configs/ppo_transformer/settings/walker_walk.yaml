@@ -1,0 +1,49 @@
+# @package _global_
+
+project: 'ppo-dmc'
+device: cuda
+algorithm: ppo
+
+env_suite: dmc            # envs/dmc_gymnasium.py
+env_name: walker_walk
+num_envs: 8
+seed: 1
+gamma: 0.99
+context_len: 16          # window length of ContextWindowWrapper (triplets per sample)
+
+trainer_cfg:
+  env_name: ${env_name}
+  num_envs: ${num_envs}
+  seed: ${seed}
+  gamma: ${gamma}
+  use_wandb: ${use_wandb}
+
+  total_steps: 1000000
+  rollout_steps: 256
+  save_interval: 100000
+  save_path: 'snapshots/walker_walk/ppo_transformer/model.pt'
+
+  # PPO hyperparameters: identical to configs/ppo_baseline/settings/walker2d.yaml
+  policy_lr: 0.0003        # actor head
+  value_lr: 0.0003         # critic head
+  trunk_lr: null           # shared encoder/decoder; null -> policy_lr
+  anneal_lr: true
+  optim: adam
+  optim_eps: 0.00001
+
+  minibatch_size: 64
+  update_epochs: 10
+  clip_eps: 0.2
+  gae_lambda: 0.95
+  ent_coef: 0.0
+  vf_coef: 0.5             # now also weights the critic's gradient into the shared trunk
+  max_grad_norm: 0.5       # clipped jointly over the whole model
+
+  model:
+    context_len: ${context_len}
+    n_embd: 128
+    n_head: 4
+    n_layer: 2             # encoder Blocks
+    n_dec_layer: 1         # decoder CrossBlocks
+    attn_pdrop: 0.0        # keep 0 for PPO (rollout/update log-prob consistency)
+    resid_pdrop: 0.0

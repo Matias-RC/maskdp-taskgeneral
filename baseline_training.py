@@ -18,10 +18,16 @@ from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 
 from algorithms.BaselinePPOTrainer import PPOTrainer
-from envs.mujoco_gym import create_vector_env
+from envs import dmc_gymnasium
+from envs.mujoco_gym import create_vector_env as create_gym_vector_env
 from utils.utils import set_seed_everywhere
 
 # Use with: Python 3.8
+
+ENV_REGISTRY = {
+    "gym": create_gym_vector_env,
+    "dmc": dmc_gymnasium.create_vector_env,
+}
 
 TRAINER_REGISTRY = {
     "ppo": PPOTrainer,
@@ -58,6 +64,11 @@ def main(cfg: DictConfig) -> None:
         cfg.trainer_cfg.save_path = str(work_dir / save_path)
 
     wandb_config = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+
+    env_suite = str(cfg.get("env_suite", "gym")).lower()
+    if env_suite not in ENV_REGISTRY:
+        raise ValueError(f"Env suite '{env_suite}' is not registered. Available: {list(ENV_REGISTRY.keys())}")
+    create_vector_env = ENV_REGISTRY[env_suite]
 
     envs = None
     try:

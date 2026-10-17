@@ -23,6 +23,6 @@ echo "Beggining training of ppo baseline"
 
 python baseline_training.py \
         use_wandb=true \
-        settings=halfcheetah \
+        settings=walker_walk \
 
         

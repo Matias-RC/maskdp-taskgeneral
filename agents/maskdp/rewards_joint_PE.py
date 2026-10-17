@@ -393,11 +393,16 @@ class JointDPAgent:
 
         return metrics
 
-    def update(self, replay_iter, step=None, use_rewards=False):
+    def update(self, replay_iter, step=None, use_rewards=True):
         metrics = dict()
         batch = next(replay_iter)
         obs, action, reward, _, _, _ = utils.to_torch(batch, self.device)
-        
+        # print(obs.shape)
+        # print(obs.norm(dim=-1).mean())
+        # assert False
+        # -> currently this prints:
+        # torch.Size([1024, 128, 24])
+        # tensor(39.3861, device='cuda:0')
         rewards_to_pass = reward if use_rewards else None
         
         metrics.update(self.update_mdp(obs, action, rewards_to_pass))

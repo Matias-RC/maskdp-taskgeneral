@@ -7,7 +7,7 @@ device: ${device}
 lr: 1e-4
 use_tb: ${use_tb}
 batch_size: 1024 
-mask_ratio: [0.15, 0.35, 0.55, 0.75, 0.95]
+mask_ratio: [0.8]
 transformer_cfg:
   n_embd: 128 
   n_head: 2
@@ -16,7 +16,7 @@ transformer_cfg:
   embd_pdrop: 0
   resid_pdrop: 0
   attn_pdrop: 0
-  traj_length: 128
+  traj_length: 16
   pe: 'fixed'
   loss: 'total'
   norm: 'l2'

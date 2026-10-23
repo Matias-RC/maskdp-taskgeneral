@@ -31,3 +31,13 @@ replay_buffer_num_workers: 16
 batch_size: ${agent.batch_size}
 
 context: pretrained_mdp
+
+# Apply the gym env preprocessing (envs/mujoco_gym_context.py) to offline batches.
+# Stats are saved in every snapshot and in <task>_env_transforms_<seed>.pt at the end;
+# restore them with EnvTransformLoader.load_into_env(path, envs) before finetuning.
+env_transforms:
+  enabled: true
+  fit_from_episodes: true   # exact stats from the .npz episodes (frozen); false -> running stats from batches
+  align_to_context: true   # true -> slot t holds (obs_t, a_{t-1}, r_{t-1}) like ContextWindowWrapper
+  clip_obs: 10.0
+  clip_reward: 10.0

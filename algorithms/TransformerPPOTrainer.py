@@ -43,10 +43,16 @@ import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch import nn
 
+from agents.actor_critic.maskdp_actor_critic import MaskDPActorCritic
 from agents.actor_critic.transformer_actor_critic import CausalTripletTransformerAC
 from utils.rl_utils import compute_gae
 
 CTX_KEYS = ("obs", "actions", "rewards", "mask")
+
+MODEL_REGISTRY = {
+    "causal_triplet": CausalTripletTransformerAC,
+    "maskdp": MaskDPActorCritic,
+}
 
 
 def to_dict(cfg):
@@ -117,9 +123,10 @@ class TransformerTrainer(ABC):
             if self.model_cfg.get(key, 0.0) != 0.0:
                 print(f"WARNING: {key}>0 makes rollout and update log-probs disagree under PPO.")
 
-        self.model = CausalTripletTransformerAC(self.obs_dim, self.act_dim, self.model_cfg).to(self.device)
+        self.model = self.build_model().to(self.device)
 
         # Parameter groups: actor head / critic head / shared trunk.
+        # Frozen parameters (model.freeze_backbone) are left out; an empty group is dropped.
         head_ids = {id(p) for p in self.model.actor.parameters()} | {id(p) for p in self.model.critic.parameters()}
         trunk_params = [p for p in self.model.parameters() if id(p) not in head_ids]
         policy_lr = getattr(self.config, "policy_lr", 1e-3)
@@ -130,6 +137,9 @@ class TransformerTrainer(ABC):
             {"name": "critic", "params": list(self.model.critic.parameters()), "lr": value_lr},
             {"name": "trunk", "params": trunk_params, "lr": trunk_lr},
         ]
+        for g in groups:
+            g["params"] = [p for p in g["params"] if p.requires_grad]
+        groups = [g for g in groups if g["params"]]
         for g in groups:
             g["base_lr"] = g["lr"]
 
@@ -148,7 +158,30 @@ class TransformerTrainer(ABC):
         )
 
         n_params = sum(p.numel() for p in self.model.parameters())
-        print(f"Transformer AC: {n_params / 1e6:.3f}M params | window={self.context_len} | {self.model_cfg}")
+        n_train = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"Transformer AC: {n_params / 1e6:.3f}M params ({n_train / 1e6:.3f}M trainable) | "
+              f"window={self.context_len} | {self.model_cfg}")
+
+    def build_model(self):
+        arch = self.model_cfg.get("arch", "causal_triplet")
+        if arch not in MODEL_REGISTRY:
+            raise ValueError(f"Unknown model.arch '{arch}'. Available: {list(MODEL_REGISTRY.keys())}")
+        pretrained_path = self.model_cfg.get("pretrained_path")
+        if pretrained_path and arch == "maskdp":
+            # The snapshot dictates the trunk shape; the env still dictates the window.
+            snap_arch = MaskDPActorCritic.arch_from_snapshot(pretrained_path)
+            for k in ("n_embd", "n_head", "n_enc_layer", "n_dec_layer"):
+                if self.model_cfg.get(k, snap_arch[k]) != snap_arch[k]:
+                    print(f"WARNING: model.{k}={self.model_cfg[k]} overridden by pretrained {snap_arch[k]}.")
+                self.model_cfg[k] = snap_arch[k]
+        if self.model_cfg.get("freeze_backbone") and not pretrained_path:
+            print("WARNING: model.freeze_backbone=true without pretrained_path freezes a randomly initialised trunk.")
+        model = MODEL_REGISTRY[arch](self.obs_dim, self.act_dim, self.model_cfg)
+        if pretrained_path:
+            if not hasattr(model, "load_pretrained"):
+                raise ValueError(f"model.arch '{arch}' does not support pretrained_path")
+            model.load_pretrained(pretrained_path)
+        return model
 
     # ----------------------------------------------------------- helpers
     def to_tensors(self, obs):
@@ -165,7 +198,8 @@ class TransformerTrainer(ABC):
         return mean.squeeze(1), std.squeeze(1), value.squeeze(1)
 
     def get_lr(self, name):
-        return next(g["lr"] for g in self.optimizer.param_groups if g["name"] == name)
+        """Current lr of a param group; 0.0 when the group was dropped (e.g. frozen trunk)."""
+        return next((g["lr"] for g in self.optimizer.param_groups if g["name"] == name), 0.0)
 
     def save_checkpoint(self, step=None):
         save_path = self.config.save_path

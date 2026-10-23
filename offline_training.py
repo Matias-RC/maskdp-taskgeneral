@@ -19,6 +19,7 @@ from utils.logger import Logger
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from data.replay_buffer import make_replay_loader
+from data.env_transform_loader import EnvTransformLoader
 from utils.utils import set_seed_everywhere, Until, Every, Timer
 
 torch.backends.cudnn.benchmark = True
@@ -103,6 +104,25 @@ def main(cfg: DictConfig):
     )
     train_iter = iter(train_loader)
 
+    # Reproduce the gym env preprocessing (envs/mujoco_gym_context.py) on the offline batches
+    env_transforms = None
+    if cfg.settings.env_transforms.enabled:
+        tcfg = cfg.settings.env_transforms
+        act_spec = env.action_spec()
+        env_transforms = EnvTransformLoader(
+            train_loader,
+            obs_dim=env.observation_spec().shape[0],
+            gamma=cfg.settings.discount,
+            clip_obs=tcfg.clip_obs,
+            clip_reward=tcfg.clip_reward,
+            action_low=float(act_spec.minimum.min()),
+            action_high=float(act_spec.maximum.max()),
+            align_to_context=tcfg.align_to_context,
+        )
+        if tcfg.fit_from_episodes:
+            env_transforms.fit_from_episodes()
+        train_iter = iter(env_transforms)
+
     timer = Timer()
 
     global_step = cfg.settings.resume_step
@@ -134,11 +154,17 @@ def main(cfg: DictConfig):
             payload = {
                 "model": agent.model.state_dict(),
                 "cfg": cfg.agent.transformer_cfg,
+                "env_transforms": None if env_transforms is None else env_transforms.state_dict(),
             }
             with snapshot.open("wb") as f:
                 torch.save(payload, f)
 
         global_step += 1
+
+    if env_transforms is not None:
+        transforms_path = snapshot_dir / f"{cfg.settings.task}_env_transforms_{cfg.seed}.pt"
+        env_transforms.save(transforms_path)
+        print(f"Saved env transforms to {transforms_path}")
     print("Done!")
 
 

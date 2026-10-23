@@ -15,9 +15,11 @@ import hydra
 import torch
 import wandb
 from hydra.core.hydra_config import HydraConfig
+from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
 from algorithms.TransformerPPOTrainer import TransformerPPOTrainer
+from data.env_transform_loader import EnvTransformLoader
 from envs import dmc_gymnasium
 from envs.mujoco_gym_context import create_vector_env as create_gym_vector_env
 from utils.utils import set_seed_everywhere
@@ -79,6 +81,22 @@ def main(cfg: DictConfig) -> None:
             gamma=cfg.gamma,
             context_len=cfg.context_len,
         )
+
+        # Start the env normalizers from the pretraining statistics so a pretrained
+        # model sees the same input distribution it was trained on.
+        env_transforms_path = cfg.get("env_transforms_path")
+        if env_transforms_path:
+            env_transforms_path = to_absolute_path(env_transforms_path)
+            EnvTransformLoader.load_into_env(
+                env_transforms_path, envs,
+                freeze=cfg.get("freeze_env_transforms", True),
+                prior_count=cfg.get("env_transforms_prior_count"),
+            )
+            print(f"Loaded env transforms from {env_transforms_path}")
+
+        model_cfg = cfg.trainer_cfg.get("model")
+        if model_cfg is not None and model_cfg.get("pretrained_path"):
+            model_cfg.pretrained_path = to_absolute_path(model_cfg.pretrained_path)
 
         exp_name = f"{cfg.env_name}_{algo_name}_transformer"
         wandb.init(

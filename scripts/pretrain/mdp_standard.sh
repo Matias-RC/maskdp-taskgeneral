@@ -6,7 +6,7 @@
 #SBATCH --nodelist=yodaxico
 #SBATCH --partition=ialab-low-unlimit
 #SBATCH --account=default-account
-#SBATCH --comment=verify_obs_integrity
+#SBATCH --comment=pretrain_mdp
 #SBATCH --qos=debug
 #SBATCH --time=1:00:00
 #SBATCH --gres=gpu:1
@@ -16,12 +16,14 @@
 #SBATCH --chdir=/home/matias_rodriguez/maskdp-taskgeneral
 
 source "/home/matias_rodriguez/miniconda3/etc/profile.d/conda.sh"
-conda activate maskdp
+conda activate maskdp-ppo
 
 pwd
 echo "Beginning standard mdp"
 
 
 python offline_training.py \
-    settings.num_grad_steps=300000 \
+    settings.num_grad_steps=10000 \
+    settings.snapshots=[9999] \
+    settings.log_every_steps=100 \
     agent.mask_ratio=[0.95]

@@ -1,0 +1,12 @@
+# @package _global_
+
+# walker_walk_maskdp with the pretrained MaskDP trunk frozen: PPO trains only the
+# actor/critic heads (the trunk is left out of the optimizer, so trunk_lr is unused).
+defaults:
+  - walker_walk_maskdp
+  - _self_
+
+trainer_cfg:
+  save_path: 'snapshots/walker_walk/ppo_maskdp_frozen/model.pt'
+  model:
+    freeze_backbone: true
